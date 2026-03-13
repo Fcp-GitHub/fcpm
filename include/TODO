@@ -1,0 +1,18 @@
+# Linear algebra
+- Factorization solvers
+- Linear system solver
+- "Inversion solver"
+- "Determinant solver"
+
+# Geometry
+- Quaternions
+- Transforms
+
+-- 0.7
+
+# 0.8 - 1.0
+- SIMD
+- Analysis (mesh, differentiation, integration, ODEs, eigensolvers)
+
+# Additional
+- Block matrix broadcast constructor (linalg/matrix)
