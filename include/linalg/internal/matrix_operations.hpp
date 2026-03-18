@@ -4,15 +4,116 @@
 #include "core/base.hpp"
 #include "core/common.hpp"
 
-#include "linalg/matrix.hpp"
-#include "linalg/internal/solvers/gemm.hpp"
+#include "core/forward.hpp"
+#include "linalg/internal/kernels/gemm.hpp"
 
+#include <numeric>
 #include <type_traits>
 #include <optional>
+#include <array>
+#include <utility>
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
 START_FCP_INTERNAL_NAMESPACE
+
+//----------------------------------------------------------------------------------
+// Permutation expression template
+//----------------------------------------------------------------------------------
+
+template <typename Expr>
+struct Traits<PermutationExpr<Expr>>
+{
+	using etraits = Traits<std::remove_cvref_t<Expr>>;
+	using element_type = etraits::element_type;
+
+	static constexpr int rows{ etraits::columns };
+	static constexpr int columns{ etraits::rows };
+	static constexpr int size{ etraits::size };
+
+	static constexpr int flags{ etraits::flags };
+
+	using materialized_type = etraits::materialized_type;
+
+	static constexpr bool is_row_major{ etraits::is_row_major };
+	static constexpr bool is_writable{ false };
+};
+
+template <typename Expr>
+struct PermutationExpr : 
+	UnaryExpressionBase<
+		Expr, 
+		typename Traits<std::remove_cvref_t<Expr>>::element_type,
+		PermutationExpr<Expr>
+	>
+{
+	using etraits = Traits<std::remove_cvref_t<Expr>>;
+	using T = etraits::element_type;
+	using base = UnaryExpressionBase<Expr, T, PermutationExpr<Expr>>;
+
+	using base::base;
+	using base::m_expr;
+
+	std::array<int, etraits::rows> m_row_indices;
+	std::array<int, etraits::columns> m_col_indices;
+
+	constexpr PermutationExpr(Expr&& expr, int row_i, int row_j, int col_i, int col_j):
+		base(std::forward<Expr>(expr))
+	{
+		std::iota(m_row_indices.begin(), m_row_indices.end(), 0);
+		std::iota(m_col_indices.begin(), m_col_indices.end(), 0);
+
+		m_row_indices[row_i] = row_j;
+		m_row_indices[row_j] = row_i;
+
+		m_col_indices[col_i] = col_j;
+		m_col_indices[col_j] = col_i;
+	}
+
+	static constexpr auto add_row_swap(Expr&& expr, int i, int j)
+	{
+		using raw_t = std::remove_cvref_t<Expr>;
+
+		if constexpr (is_permutation_expr_v<raw_t>)
+		{
+			expr.m_row_indices[i] = j;
+			expr.m_row_indices[j] = i;
+			return expr;	
+		} else {
+			return PermutationExpr(std::forward<Expr>(expr), i, j, 0, 0);	
+		}
+	}
+
+	static constexpr auto add_col_swap(Expr&& expr, int i, int j)
+	{
+		using raw_t = std::remove_cvref_t<Expr>;
+
+		if constexpr (is_permutation_expr_v<raw_t>)
+		{
+			expr.m_col_indices[i] = j;
+			expr.m_col_indices[j] = i;
+			return expr;	
+		} else {
+			return PermutationExpr(std::forward<Expr>(expr), 0, 0, i, j);	
+		}
+	}
+
+	constexpr T evaluate(int i) const
+	{
+		constexpr int rows{ etraits::rows    };
+		constexpr int cols{ etraits::columns };
+
+		const int row{ etraits::is_row_major ? (i/cols) : (i%rows) };
+		const int col{ etraits::is_row_major ? (i%cols) : (i/rows) };
+
+		return m_expr.evaluate(m_row_indices[row], m_col_indices[col]);
+	}
+
+	constexpr T evaluate(int row, int col) const
+	{
+		return m_expr.evaluate(m_row_indices[row], m_col_indices[col]);
+	}
+};
 
 //----------------------------------------------------------------------------------
 // Transposition expression template
@@ -86,7 +187,16 @@ struct Traits<GemmExpr<LeftExpr, RightExpr, T>>
 
 	using materialized_type = Matrix<element_type, rows, columns, flags>;
 
-	static constexpr bool is_row_major{ merger::layout };
+	static constexpr bool is_row_major{ 
+		requires{ requires (LazyVectorLike<LeftExpr>); } ? 
+			ltraits::is_row_major : 
+			(
+				requires{ requires (LazyVectorLike<RightExpr>); } ?
+			 		rtraits::is_row_major :
+			 		merger::use_row_major
+			) 
+	};
+
 	static constexpr bool is_writable{ false };
 };
 
@@ -104,7 +214,7 @@ struct GemmExpr : BinaryExpressionBase<
 	using rtraits = Traits<std::remove_cvref_t<RightExpr>>;
 	using merger  = MatrixFlagsMerger<ltraits::flags, rtraits::flags>;
 	using buffer_t = Matrix<T, ltraits::rows, rtraits::columns, merger::value>;
-	using btraits = Traits<std::remove_cvref_t<buffer_t>>;
+	using btraits = Traits<buffer_t>;
 	using lmat_t  = Matrix<T, ltraits::rows, ltraits::columns, ltraits::flags>;
 	using rmat_t  = Matrix<T, rtraits::rows, rtraits::columns, rtraits::flags>;
 
@@ -161,7 +271,9 @@ struct GemmExpr : BinaryExpressionBase<
 		//TODO: if the gemm routines don't use += this is not needed
 		//			Thus, if all gemm routines treat m_mem as an out 
 		//			parameter, an O(n^2) operation is saved
-		//std::fill(m_mem.begin(), m_mem.last(), T{0});
+		//std::fill((*m_mem).begin(), (*m_mem).end(), static_cast<T>(0));
+
+		m_mem.emplace(static_cast<T>(0)); // mandatory or std::optional doesn't see the initialization
 
 		// Let the dispatcher choose the best routine
 		gemm_dispatcher<merger::value>(*m_mem, left, right);	
@@ -171,6 +283,9 @@ struct GemmExpr : BinaryExpressionBase<
 	{
 		lmat_t left{ mat_if_needed(m_left_expr) };
 		rmat_t right{ mat_if_needed(m_right_expr) };
+		//std::fill((*m_mem).begin(), (*m_mem).end(), static_cast<T>(0));
+
+		m_mem.emplace(static_cast<T>(0));	// mandatory or std::optional doesn't see the initialization
 
 		gemm_dispatcher<merger::value>(buffer, left, right);
 	}
@@ -184,21 +299,35 @@ struct GemmExpr : BinaryExpressionBase<
 			if constexpr (is_lazy_matrix_v<raw_t>)
 				return std::forward<Expr>(expr);
 			else
-				return buffer_t(expr);
+				return expr.eval();
 		}
 };
 END_FCP_INTERNAL_NAMESPACE
 
 START_FCP_OPERATORS_NAMESPACE
-template <LazyMatrixLike L, LazyMatrixLike R>
+template <typename L, typename R>
+	requires (
+			(LazyMatrixLike<L> || LazyVectorLike<L>) && 
+			(LazyMatrixLike<R> || LazyVectorLike<R>) &&
+			!(LazyVectorLike<L> && LazyVectorLike<R>)
+	)
 constexpr auto operator*(L&& left, R&& right)
 {
 	//TODO
 	using lwt = std::remove_cvref_t<L>;
 	using rwt = std::remove_cvref_t<R>;
 
+	static_assert(
+			internal::Traits<lwt>::columns == internal::Traits<rwt>::rows,
+			"The number of left matrix's columns should be equal to the number of \
+			right matrix's rows."
+	);
+
 	// Deduce underlying type
-	using T = decltype(lwt(left).evaluate(0) * rwt(right).evaluate(0));
+	using T = std::common_type_t<
+		typename internal::Traits<lwt>::element_type,
+		typename internal::Traits<rwt>::element_type
+	>;
 
 	return internal::GemmExpr<lwt, rwt, T>(left, right);
 }

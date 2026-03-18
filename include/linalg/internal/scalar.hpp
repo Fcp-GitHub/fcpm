@@ -4,8 +4,6 @@
 #include "core/common.hpp"
 #include "core/interface_base.hpp"
 
-#include <limits>
-
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
 
@@ -23,7 +21,7 @@ struct Traits<Scalar<T>>
 	static constexpr int rows{ 1 };
 	static constexpr int columns{ 1 };
 	static constexpr int size{ 1 };
-	static constexpr int flags{ std::numeric_limits<int>::max() };
+	static constexpr int flags{ 0 };	// Compatible with all options
 
 	static constexpr bool is_row_major{ true };
 	static constexpr bool is_writable{ true };
@@ -35,9 +33,9 @@ struct Scalar : internal::InterfaceBase<Scalar<T>>
 {
 	using is_scalar = void;
 
-	constexpr int rows_impl() const { return 1; }
-	constexpr int cols_impl() const { return 1; }
-	constexpr int flags_impl() const { return 0; }	// Compatible with all options
+	constexpr void swap_rows_impl(int, int) const {}
+
+	constexpr void swap_cols_impl(int, int) const {}
 
 	constexpr Scalar() = default;
 	constexpr Scalar(const T value): m_value{value} {}

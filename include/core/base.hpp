@@ -13,9 +13,14 @@
 #define START_FCP_OPERATORS_NAMESPACE namespace operators {
 #define END_FCP_OPERATORS_NAMESPACE }
 
+#define START_FCP_SOLVERS_NAMESPACE namespace solvers {
+#define END_FCP_SOLVERS_NAMESPACE }
+
+#define START_FCP_KERNELS_NAMESPACE namespace kernels {
+#define END_FCP_KERNELS_NAMESPACE }
+
 #include <utility>
 #include <type_traits>
-#include <concepts>
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
@@ -69,38 +74,6 @@ concept LazyExpressionType = LazyType<E> && requires(E expr)
 	typename std::remove_cvref_t<E>::is_expression;
 };
 
-// Matrix concept
-template <typename E>
-concept LazyMatrixType = LazyType<E> && requires(E expr)
-{
-	typename std::remove_cvref_t<E>::is_matrix;
-	(expr.rows() > 1) and (expr.columns() > 1);
-};
-
-// Matrix or expression resulting in one
-template <typename E>
-concept LazyMatrixLike = (
-		LazyExpressionType<E> &&
-	  requires(E expr) { (expr.rows() > 1) and (expr.columns() > 1); }
-	) || 
-	LazyMatrixType<E>; 
-
-// Vector concept
-template <typename E>
-concept LazyVectorType = LazyType<E> && requires(E expr)
-{
-	typename std::remove_cvref_t<E>::is_matrix;
-	(expr.rows() == 1) or (expr.columns() == 1);
-};
-
-// Vector or expression resulting in one
-template <typename E>
-concept LazyVectorLike = (
-		LazyExpressionType<E> &&
-		requires(E expr) { (expr.rows() == 1) or (expr.columns() == 1); }
-	) ||
-  LazyVectorType<E>;
-
 // Scalar concept
 //template <typename E>
 //concept ScalarType = std::is_scalar_v<std::remove_cvref_t<E>> || requires
@@ -108,22 +81,6 @@ concept LazyVectorLike = (
 //	typename std::remove_cvref_t<E>::is_scalar;
 //};
 
-template <typename T>
-concept ScalarType = requires(T a, T b) {
-    { a + b } -> std::convertible_to<std::remove_cvref_t<T>>;
-    { a * b } -> std::convertible_to<std::remove_cvref_t<T>>;
-    { a - b } -> std::convertible_to<std::remove_cvref_t<T>>;
-    { a / b } -> std::convertible_to<std::remove_cvref_t<T>>;
-    requires std::is_copy_constructible_v<std::remove_cvref_t<T>>;
-} || std::is_scalar_v<std::remove_cvref_t<T>>;
-
-// Scalar or expression resulting in one
-template <typename E>
-concept ScalarLike = (
-		LazyExpressionType<E> &&
-		requires(E expr) { (expr.rows() == 1) and (expr.columns() == 1); }
-	) ||
-	ScalarType<E>;
 
 START_FCP_INTERNAL_NAMESPACE
 

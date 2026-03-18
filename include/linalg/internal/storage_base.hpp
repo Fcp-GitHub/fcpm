@@ -1,8 +1,7 @@
 #ifndef FCP_MATH_LINALG_STORAGE_HPP
 #define FCP_MATH_LINALG_STORAGE_HPP
 
-#include "core/base.hpp"
-#include "core/forward.hpp"
+#include "core/common.hpp"
 
 #include <array>
 #include <type_traits>
@@ -61,6 +60,9 @@ struct StaticStorageBase
 	{
 		m_data = other.m_data;
 	}
+
+	// Get the underlying buffer
+	constexpr auto data() const { return m_data.data(); }
 
 	std::array<T, N*M> m_data;
 };

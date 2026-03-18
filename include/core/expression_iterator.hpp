@@ -3,6 +3,7 @@
 
 #include "core/common.hpp"
 
+#include <cstddef>
 #include <iterator>
 #include <type_traits>
 //#include <ranges>
@@ -56,7 +57,7 @@ class ExpressionIterator
 		// Use references only if the right overload allows it
 		using reference         = decltype(std::declval<Expr>()[0]);	
 
-		using difference_type   = value_type;
+		using difference_type   = std::ptrdiff_t;
 		using pointer           = value_type*;
 
 		using iterator_category = std::conditional_t<
@@ -90,14 +91,36 @@ class ExpressionIterator
 		constexpr ExpressionIterator& operator--() { m_index -= Stride; return *this; }
 		constexpr ExpressionIterator& operator--(int) { m_index -= Stride; return *this; }
 
-		constexpr ExpressionIterator& operator+=(difference_type n) { m_index += n * Stride; return *this; }
-		constexpr ExpressionIterator& operator-=(difference_type n) { m_index -= n * Stride; return *this; }
+		//constexpr ExpressionIterator& operator+=(difference_type n) { m_index += n * Stride; return *this; }
+		//constexpr ExpressionIterator& operator-=(difference_type n) { m_index -= n * Stride; return *this; }
 
-		friend constexpr ExpressionIterator operator+(ExpressionIterator& it, difference_type n) { return it += n * Stride; }
-		friend constexpr ExpressionIterator operator-(ExpressionIterator& it, difference_type n) { return it -= n * Stride; }
+		template <typename Self>
+		constexpr ExpressionIterator& operator+=(this Self&& self, difference_type n) 
+		{ 
+			self.m_index += n * Stride; 
+			return self; 
+		}
+		
+		template <typename Self>
+		constexpr ExpressionIterator& operator-=(this Self&& self, difference_type n) 
+		{ 
+			self.m_index -= n * Stride; 
+			return self; 
+		}
+		
+		template <typename Self>
+		constexpr ExpressionIterator operator+(this Self&& self, difference_type n)
+		{
+			ExpressionIterator temp(self);
+			return temp += n;
+		}
 
-		friend constexpr ExpressionIterator operator+(difference_type n, ExpressionIterator& it) { return it += n * Stride; }
-		friend constexpr ExpressionIterator operator-(difference_type n, ExpressionIterator& it) { return it -= n * Stride; }
+		template <typename Self>
+		constexpr ExpressionIterator operator-(this Self&& self, difference_type n)
+		{
+			ExpressionIterator temp(self);
+			return temp -= n;
+		}
 
 		constexpr difference_type operator-(ExpressionIterator& other) const
 		{

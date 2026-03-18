@@ -2,8 +2,7 @@
 #define FCP_MATH_H_LAZY_VECTOR_OPERATIONS_HPP
 
 #include "core/common.hpp"
-#include "linalg/operators.hpp"
-#include "linalg/matrix.hpp"
+#include "linalg/internal/operators.hpp"
 
 #include <cmath>
 #include <numeric>

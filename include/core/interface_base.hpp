@@ -15,12 +15,13 @@ template <typename Derived>
 struct InterfaceBase
 {
 	using is_lazy = void;
-	using element_type = typename Traits<Derived>::element_type;
+	using dtraits  = Traits<std::remove_cvref_t<Derived>>;
+	using element_type = dtraits::element_type;
 
-	constexpr int rows() const { return derived().rows_impl(); }	
-	constexpr int columns() const { return derived().cols_impl(); }	
-	constexpr int flags() const { return derived().flags_impl(); }
-	constexpr int size() const { return rows()*columns(); }
+	constexpr int rows() const { return dtraits::rows; }	
+	constexpr int columns() const { return dtraits::columns; }	
+	constexpr int flags() const { return dtraits::flags; }
+	constexpr int size() const { return dtraits::size; }
 
 	constexpr auto operator[](int row, int col) const 
 	{ 
@@ -76,7 +77,7 @@ struct InterfaceBase
 		return derived().evaluate(rows()-1, columns()-1);
 	}
 
-	friend constexpr bool operator==(const Derived& first, LazyType auto& second)
+	friend constexpr bool operator==(const Derived& first, const LazyType auto& second)
 	{
 		static_assert(
 				Traits<std::remove_cvref_t<Derived>>::size == 
@@ -85,7 +86,7 @@ struct InterfaceBase
 		);
 
 		for (int i{0}; i < first.size(); i++)
-			if (cmp(first[i], second[i]))
+			if (!cmp(first[i], second[i]))
 				return false;
 
 		return true;
@@ -107,6 +108,36 @@ struct InterfaceBase
 		}
 		
 		return result;
+	}
+
+	template <typename Self>
+	constexpr auto swap_rows(this Self&& self, int i, int j)
+	{
+		if constexpr (is_writable_v<Self>)
+		{
+			self.swap_rows_impl(i, j);
+			return self;
+		} else {
+			return PermutationExpr<Self>::add_row_swap(
+					std::forward<Self>(self), 
+					i, j
+			);	
+		}
+	}
+	
+	template <typename Self>
+	constexpr auto swap_cols(this Self&& self, int i, int j)
+	{
+		if constexpr (is_writable_v<Self>)
+		{
+			self.swap_cols_impl(i, j);
+			return self;
+		} else {
+			return PermutationExpr<Self>::add_col_swap(
+					std::forward<Self>(self), 
+					i, j
+			);	
+		}
 	}
 
 	constexpr auto transpose() const 

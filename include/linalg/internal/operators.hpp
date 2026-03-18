@@ -4,8 +4,8 @@
 #include <iostream>
 
 #include "core/base.hpp"
-#include "internal/expression_templates.hpp"
-#include "linalg/scalar.hpp"
+#include "linalg/internal/expression_templates.hpp"
+#include "linalg/internal/scalar.hpp"
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
@@ -118,15 +118,30 @@ constexpr auto operator-(E&& expr)
 // Pretty-print overload
 //----------------------------------------------------
 
-template <typename E>
-	requires LazyType<E>
-std::ostream& operator<<(std::ostream& out, const E& expr)
+template <LazyType M>
+std::ostream& operator<<(std::ostream& out, const M& expr)
 {
-	/*constexpr*/ auto dim = expr.size();
+	const auto dim{ expr.size() };
+	const auto rows{ expr.rows() };
+
 	out << '(';
-	for (std::size_t i{0}; i < dim - 1; i++)
-		out << expr[i] << ", ";
+	for (int i{0}; i < dim - 1; i++)
+		out << expr[i] << ( ((i+1)%expr.rows() == 0) ? "\n " : ", ");
 	out << expr[dim - 1] << ')';
+
+	return out;
+}
+
+template <LazyVectorLike V>
+std::ostream& operator<<(std::ostream& out, const V& expr)
+{
+	const auto dim{ expr.size() };
+
+	out << '(';
+	for (int i{0}; i < dim - 1; i++)
+		out << expr[i] << ", ";
+	out << expr[dim - 1] << ')' << \
+		(internal::Traits<std::remove_cvref_t<V>>::is_row_major ? "" : "^T");
 
 	return out;
 }
@@ -138,7 +153,12 @@ std::ostream& operator<<(std::ostream& out, const E& expr)
 // Multiplication (matrix-scalar)
 template <typename L, typename R>
 	requires (LazyType<L> || LazyType<R>) &&
-					 (!(LazyMatrixLike<L> && LazyMatrixLike<R>))
+					 (!
+						(
+							(LazyMatrixLike<L> || LazyVectorLike<L>) && 
+							(LazyMatrixLike<R> || LazyVectorLike<R>)
+					  )
+					 )
 constexpr auto operator*(L&& left, R&& right)
 {
 	using lwt = decltype(wrap_scalar(left));
@@ -156,7 +176,12 @@ constexpr auto operator*(L&& left, R&& right)
 // Division (matrix-scalar)
 template <typename L, typename R>
 	requires (LazyType<L> || LazyType<R>) &&
-					 (!(LazyMatrixLike<L> && LazyMatrixLike<R>))
+					 (!
+						(
+							(LazyMatrixLike<L> || LazyVectorLike<L>) && 
+							(LazyMatrixLike<R> || LazyVectorLike<R>)
+					  )
+					 )
 constexpr auto operator/(L&& left, R&& right)
 {
 	using lwt = decltype(wrap_scalar(left));

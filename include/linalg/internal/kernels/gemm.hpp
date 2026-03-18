@@ -101,7 +101,7 @@ constexpr void gemm_standard(auto& res, const auto& left, const auto& right, Row
 	for (int i{0}; i < LeftRows; i++)
 		for (int k{0}; k < Common; k++)	
 		{
-			auto temp = left[i, k];
+			auto temp{ left[i, k] };
 
 			for (int j{0}; j < RightColumns; j++)
 				res[i, j] += temp * right[k, j];

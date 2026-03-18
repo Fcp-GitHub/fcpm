@@ -36,6 +36,9 @@ struct MemoizedBinaryExpression;
 template <typename Expr, typename T>
 struct TransposeExpr;
 
+template <typename Expr>
+struct PermutationExpr;
+
 template <typename LeftExpr, typename RightExpr, typename T>
 struct GemmExpr;
 

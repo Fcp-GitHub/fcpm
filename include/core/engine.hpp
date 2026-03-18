@@ -47,10 +47,6 @@ struct UnaryExpressionBase : InterfaceBase<Derived>
 
 	constexpr UnaryExpressionBase():
 		m_expr{} {}
-
-	constexpr int rows_impl() const { return m_expr.rows_impl(); } 
-	constexpr int cols_impl() const { return m_expr.cols_impl(); } 
-	constexpr int flags_impl() const { return m_expr.flags_impl(); }
 };
 
 template <typename Expr, typename T, typename UnaryOp>
@@ -174,12 +170,6 @@ struct BinaryExpressionBase : InterfaceBase<Derived>
 
 	constexpr BinaryExpressionBase():
 		m_left_expr{}, m_right_expr{} {}
-
-	//TODO: this methods are implemented assuming the same settings for both parameters,
-	//			but it's clear that it isn't in all cases. It's ok for element-wise operations
-	constexpr int rows_impl() const { return m_left_expr.rows_impl(); }
-	constexpr int cols_impl() const { return m_left_expr.cols_impl(); }
-	constexpr int flags_impl() const { return m_left_expr.flags_impl(); }
 };
 
 template <typename LeftExpr, typename RightExpr, typename T, typename BinaryOp>
@@ -199,7 +189,7 @@ struct Traits<ElementwiseBinaryExpression<LeftExpr, RightExpr, T, BinaryOp>>
 	static constexpr int flags{ merger::value };
 
 	// Assumes that both expressions have the same storage method
-	static constexpr bool is_row_major{ merger::layout };
+	static constexpr bool is_row_major{ merger::use_row_major };
 	static constexpr bool is_writable{ false };
 };
 
@@ -255,7 +245,7 @@ struct Traits<MemoizedBinaryExpression<LeftExpr, RightExpr, T, BinaryOp>>
 	static constexpr int flags{ merger::value };
 
 	// Assumes that both expressions have the same storage method
-	static constexpr bool is_row_major{ merger::layout };
+	static constexpr bool is_row_major{ merger::use_row_major };
 	static constexpr bool is_writable{ false };
 };
 
