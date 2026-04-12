@@ -3,6 +3,7 @@
 
 #include "core/common.hpp"
 #include "core/interface_base.hpp"
+
 #include "linalg/internal/storage_base.hpp"
 
 #include <type_traits>
@@ -61,6 +62,16 @@ class Matrix :
 	public:
 		using is_matrix = void;
 		using StorageBase::StorageBase;
+
+		static constexpr Matrix identity() requires LazyMatrixType<Matrix> 
+		{
+			Matrix result(static_cast<T>(0));
+			
+			for (int i{0}; i < NumRows; i++)
+				result[i, i] = static_cast<T>(1);
+
+			return result;
+		}
 
 		template <typename Self>
 		constexpr void swap_rows_impl(this Self&& self, int i, int j)
@@ -163,6 +174,7 @@ class Matrix :
 		}
 
 		// Lazy constructor
+		//TODO: no perfect forwarding?
 		constexpr Matrix(LazyExpressionType auto expr)
 		{
 			lazy_assign(expr, Layout{});
@@ -178,11 +190,9 @@ class Matrix :
 	using iterator = internal::ExpressionIterator<Matrix>;
 
 	private:
-		constexpr void lazy_assign(auto expr, auto tag){}
-
 		constexpr void lazy_assign(auto expr, RowMajorTag)
 		{
-			if constexpr (NumColumns == 1)
+			if constexpr (NumRows == 1)
 			{
 				for (int i{0}; i < NumRows; i++)
 					m_data[i] = expr.evaluate(i);
@@ -196,7 +206,7 @@ class Matrix :
 		
 		constexpr void lazy_assign(auto expr, ColumnMajorTag)
 		{
-			if constexpr (NumRows == 1)
+			if constexpr (NumColumns == 1)
 			{
 				for (int i{0}; i < NumColumns; i++)
 					m_data[i] = expr.evaluate(i);

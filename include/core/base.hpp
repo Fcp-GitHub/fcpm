@@ -112,7 +112,7 @@ struct subexpr
 		is_lazy_matrix_v<E>,
 		const no_cvref_t&,
 		const no_cvref_t
-	>;;
+	>;
 };
 
 template <typename E>

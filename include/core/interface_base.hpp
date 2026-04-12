@@ -1,18 +1,52 @@
 #ifndef FCP_MATH_LINALG_INTERFACE_BASE_HPP
 #define FCP_MATH_LINALG_INTERFACE_BASE_HPP
 
+#include "core/common.hpp"
 #include "core/forward.hpp"
 #include "core/expression_iterator.hpp"
 #include "core/math_fun.hpp"
 
+#include <concepts>
 #include <type_traits>
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
 START_FCP_INTERNAL_NAMESPACE
 
+// Detect if type has an extension to add
+
+// Inherit from empty struct if no plugin is available
+struct NoPlugin {};
+
+template <typename T, typename = void>
+struct has_plugin
+{
+	using type = NoPlugin;
+};
+
+template <typename T>
+struct has_plugin<T, std::void_t<
+	typename Traits<typename Traits<T>::materialized_type>::plugin_t>
+>
+{
+	using type = typename Traits<typename Traits<T>::materialized_type>::plugin_t;
+};
+
+//template <typename T>
+//constexpr inline bool has_plugin_v{ has_plugin<T>::value };
+
+//template <typename T>
+//using PluginIfAvailable = std::conditional_t<
+//	has_plugin_v<T>,
+//	typename Traits<typename Traits<T>::materialized_type>::plugin_t,
+//	NoPlugin
+//>;
+
+template <typename T>
+using PluginIfAvailable = has_plugin<T>::type;
+
 template <typename Derived>
-struct InterfaceBase
+struct InterfaceBase : PluginIfAvailable<std::remove_cvref_t<Derived>>
 {
 	using is_lazy = void;
 	using dtraits  = Traits<std::remove_cvref_t<Derived>>;
@@ -23,12 +57,13 @@ struct InterfaceBase
 	constexpr int flags() const { return dtraits::flags; }
 	constexpr int size() const { return dtraits::size; }
 
-	constexpr auto operator[](int row, int col) const 
+	constexpr auto operator[](int row, int col) const //requires LazyMatrixLike<Derived>
 	{ 
 		return derived().evaluate(row, col); 
 	}
 
-	constexpr decltype(auto) operator[](int row, int col) requires is_writable_v<Derived>
+	constexpr decltype(auto) operator[](int row, int col) 
+		requires is_writable_v<Derived> //&& LazyMatrixLike<Derived>
 	{
 		return derived().evaluate(row, col);
 	}
@@ -43,13 +78,14 @@ struct InterfaceBase
 		return derived().evaluate(i);
 	}
 
-	constexpr auto at(int row, int col) const
+	constexpr auto at(int row, int col) const requires LazyMatrixLike<Derived>
 	{
 		if (row < rows() and col < columns()) 
 			return derived().evaluate(row, col);
 	}
 
 	constexpr decltype(auto) at(int row, int col)
+		requires is_writable_v<Derived> && LazyMatrixLike<Derived>
 	{
 		if (row < rows() and col < columns()) 
 			return derived().evaluate(row, col);
@@ -61,7 +97,7 @@ struct InterfaceBase
 			return derived().evaluate(i);
 	}
 
-	constexpr decltype(auto) at(int i)
+	constexpr decltype(auto) at(int i) requires is_writable_v<Derived>
 	{
 		if (i < size())
 			return derived().evaluate(i);
@@ -77,19 +113,24 @@ struct InterfaceBase
 		return derived().evaluate(rows()-1, columns()-1);
 	}
 
-	friend constexpr bool operator==(const Derived& first, const LazyType auto& second)
+	friend constexpr bool operator==(const Derived& first, const Derived& second)
+	{
+		return compare_impl(first, second);
+	}
+	
+	template <LazyType Expr>	// This breaks the C++20 operator== symmetry
+														// (in particular for quaternion classes which
+														// derive from the same base class)
+		requires (!std::derived_from<std::remove_cvref_t<Expr>, Derived>)
+	friend constexpr bool operator==(const Derived& first, const Expr& second)
 	{
 		static_assert(
 				Traits<std::remove_cvref_t<Derived>>::size == 
-				Traits<std::remove_cvref_t<decltype(second)>>::size,
+				Traits<std::remove_cvref_t<std::remove_cvref_t<Expr>>>::size,
 				"The two operands should have the same size."			
 		);
 
-		for (int i{0}; i < first.size(); i++)
-			if (!cmp(first[i], second[i]))
-				return false;
-
-		return true;
+		return compare_impl(first, second);
 	}
 
 	constexpr auto eval() const
@@ -110,7 +151,7 @@ struct InterfaceBase
 		return result;
 	}
 
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto swap_rows(this Self&& self, int i, int j)
 	{
 		if constexpr (is_writable_v<Self>)
@@ -125,7 +166,7 @@ struct InterfaceBase
 		}
 	}
 	
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto swap_cols(this Self&& self, int i, int j)
 	{
 		if constexpr (is_writable_v<Self>)
@@ -147,10 +188,19 @@ struct InterfaceBase
 			element_type
 		>(derived());		
 	}
-
-	constexpr auto block() const;	//TODO
+	
+	template <int NumRows, int NumColumns, typename Self>
+	constexpr auto get_view(this Self& self, int start_row, int start_col) 
+		requires LazyMatrixLike<Self>
+	{
+		return BlockView<Self, NumRows, NumColumns>(
+				self, start_row, start_col
+		);
+	}
 															
-	constexpr auto inverse() const
+	//TODO: not for vectors, but ok for quaternions
+	constexpr auto inverse() const 
+		requires LazyMatrixLike<Derived>
 	{
 		return InverseExpr<
 			Derived,
@@ -218,7 +268,7 @@ struct InterfaceBase
 	//----------------------------------------------------------------------------------
 
 	// Get a range view of i-th column
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto column(this Self&& self, int i)
 	{
 		return internal::IteratorRange{
@@ -226,7 +276,7 @@ struct InterfaceBase
 		};
 	}
 
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto col_begin(this Self&& self, int column_index) noexcept
 	{
 		using raw_t = std::remove_cvref_t<Derived>;
@@ -252,7 +302,7 @@ struct InterfaceBase
 		};
 	}
 
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto col_end(this Self&& self, int column_index) noexcept
 	{
 		using raw_t = std::remove_cvref_t<Derived>;
@@ -283,7 +333,7 @@ struct InterfaceBase
 	//----------------------------------------------------------------------------------
 
 	// Get a range view of i-th column
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto row(this Self&& self, int i)
 	{
 		return internal::IteratorRange{
@@ -291,7 +341,7 @@ struct InterfaceBase
 	};
 	}
 	
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto row_begin(this Self&& self, int row_index) noexcept
 	{
 		using raw_t = std::remove_cvref_t<Derived>;
@@ -317,7 +367,7 @@ struct InterfaceBase
 		};
 	}
 
-	template <typename Self>
+	template <LazyMatrixLike Self>
 	constexpr auto row_end(this Self&& self, int row_index) noexcept
 	{
 		using raw_t = std::remove_cvref_t<Derived>;
@@ -353,6 +403,16 @@ struct InterfaceBase
 		{
 			return static_cast<const Derived&>(*this);
 		}
+
+		static constexpr bool compare_impl(const auto& first, const auto& second)
+		{
+			for (int i{0}; i < first.size(); i++)
+				if (!fcp::math::cmp(first[i], second[i]))
+					return false;
+
+			return true;
+		}
+
 };
 
 END_FCP_INTERNAL_NAMESPACE

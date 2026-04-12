@@ -11,47 +11,7 @@
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
 START_FCP_INTERNAL_NAMESPACE
-
-// Gemm routine dispatcher
-template <int MergedFlags, typename Result, typename LeftExpr, typename RightExpr>
-constexpr void gemm_dispatcher(Result& result, const LeftExpr& lexpr, const RightExpr& rexpr)
-{
-	using ltraits = Traits<std::remove_cvref_t<LeftExpr>>;
-	using rtraits = Traits<std::remove_cvref_t<RightExpr>>;
-	using inspector = MatrixFlagsInspector<MergedFlags>;
-	using element_t = std::common_type_t<
-		typename ltraits::element_type, 
-		typename rtraits::element_type
-	>;
-
-	using llayout = std::conditional_t<
-		ltraits::is_row_major,
-		RowMajorTag,
-		ColumnMajorTag
-	>;
-
-	using rlayout = std::conditional_t<
-		rtraits::is_row_major,
-		RowMajorTag,
-		ColumnMajorTag
-	>;
-
-	constexpr int lrows{ ltraits::rows };
-	constexpr int rcols{ rtraits::columns };
-	constexpr int common{ ltraits::columns };
-
-	constexpr bool left_is_square{ common == lrows };
-	constexpr bool right_is_square{ rcols == common };
-
-	constexpr int total_bytes{ 
-		(lrows*common + common*rcols + lrows*rcols) * sizeof(element_t)
- 	};
-
-	if constexpr (lrows <= 4 && rcols <= 4 && common <= 4)
-		gemm_tiny<lrows, rcols, common>(result, lexpr, rexpr);
-	else if constexpr (total_bytes < FCP_MATH_L1_SIZE)
-		gemm_standard<lrows, rcols, common>(result, lexpr, rexpr, llayout{}, rlayout{});
-}
+START_FCP_KERNELS_NAMESPACE
 
 //----------------------------------------------------------------------------------
 // Tiny matrix solver
@@ -146,6 +106,52 @@ constexpr void gemm_standard(auto& res, const auto& left, const auto& right, Col
 		}
 }
 
+//----------------------------------------------------------------------------------
+// GEMM routine dispatcher
+//----------------------------------------------------------------------------------
+
+// Gemm routine dispatcher
+template <int MergedFlags, typename Result, typename LeftExpr, typename RightExpr>
+constexpr void gemm_dispatcher(Result& result, const LeftExpr& lexpr, const RightExpr& rexpr)
+{
+	using ltraits = Traits<std::remove_cvref_t<LeftExpr>>;
+	using rtraits = Traits<std::remove_cvref_t<RightExpr>>;
+	using inspector = MatrixFlagsInspector<MergedFlags>;
+	using element_t = std::common_type_t<
+		typename ltraits::element_type, 
+		typename rtraits::element_type
+	>;
+
+	using llayout = std::conditional_t<
+		ltraits::is_row_major,
+		RowMajorTag,
+		ColumnMajorTag
+	>;
+
+	using rlayout = std::conditional_t<
+		rtraits::is_row_major,
+		RowMajorTag,
+		ColumnMajorTag
+	>;
+
+	constexpr int lrows{ ltraits::rows };
+	constexpr int rcols{ rtraits::columns };
+	constexpr int common{ ltraits::columns };
+
+	constexpr bool left_is_square{ common == lrows };
+	constexpr bool right_is_square{ rcols == common };
+
+	constexpr int total_bytes{ 
+		(lrows*common + common*rcols + lrows*rcols) * sizeof(element_t)
+ 	};
+
+	if constexpr (lrows <= 4 && rcols <= 4 && common <= 4)
+		gemm_tiny<lrows, rcols, common>(result, lexpr, rexpr);
+	else if constexpr (total_bytes < FCP_MATH_L1_SIZE)
+		gemm_standard<lrows, rcols, common>(result, lexpr, rexpr, llayout{}, rlayout{});
+}
+
+END_FCP_KERNELS_NAMESPACE
 END_FCP_INTERNAL_NAMESPACE
 END_FCP_MATH_NAMESPACE
 END_FCP_NAMESPACE

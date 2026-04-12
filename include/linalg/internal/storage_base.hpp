@@ -55,16 +55,17 @@ struct StaticStorageBase
 		m_data = other.m_data;	
 	}
 
-	// Copy assignment opeator
+	// Copy assignment operator
 	constexpr StaticStorageBase operator=(const StaticStorageBase& other)
 	{
 		m_data = other.m_data;
+		return *this;
 	}
 
 	// Get the underlying buffer
 	constexpr auto data() const { return m_data.data(); }
 
-	std::array<T, N*M> m_data;
+	std::array<T, N*M> m_data{};
 };
 
 END_FCP_INTERNAL_NAMESPACE

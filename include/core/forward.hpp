@@ -36,6 +36,9 @@ struct MemoizedBinaryExpression;
 template <typename Expr, typename T>
 struct TransposeExpr;
 
+template <typename Expr, typename T>
+struct ConjugateExpr;
+
 template <typename Expr>
 struct PermutationExpr;
 
@@ -44,6 +47,14 @@ struct GemmExpr;
 
 template <typename Expr, typename T>
 struct InverseExpr;
+
+struct NoPlugin;
+
+template <typename Derived>
+struct QuaternionPlugin;
+
+template <typename Derived>
+class QuaternionBase;
 
 }	// internal
 	
@@ -58,6 +69,12 @@ class BlockView;
 
 template <typename T>
 struct Scalar;
+
+template <typename T>
+class Quaternion;
+
+template <typename T>
+class UnitQuaternion;
 
 }	// math
 }	// fcp

@@ -2,9 +2,12 @@
 #define FCP_MATH_LINALG_BLOCKVIEW_HPP
 
 #include "core/base.hpp"
+#include "core/common.hpp"
+#include "core/forward.hpp"
 #include "core/interface_base.hpp"
 
 #include <type_traits>
+#include <utility>
 /*#include <ranges>*/
 
 START_FCP_NAMESPACE
@@ -41,10 +44,6 @@ class BlockView :
 		using storage_t = Parent&;
 
 	public:
-		constexpr int rows_impl() const { return NumRows; }	
-		constexpr int cols_impl() const { return NumColumns; }
-		constexpr int flags_impl() const { return m_parent.flags(); }
-
 		constexpr decltype(auto) evaluate(int i) const
 		{
 			// Map into block/local coordinates
@@ -70,6 +69,11 @@ class BlockView :
 		constexpr BlockView(storage_t p, int start_row, int start_col):
 			m_parent{std::forward<storage_t>(p)}, 
 			m_pstart_row{start_row}, m_pstart_column{start_col} {}
+
+		constexpr BlockView(storage_t p, int start) requires LazyVectorLike<Parent>:
+			m_parent{std::forward<storage_t>(p)},
+			m_pstart_row{ptraits::is_row_major ? 0 : start},
+			m_pstart_column{ptraits::is_row_major ? start : 0} {}
 
 		template <LazyType Expr>
 			requires (!std::is_const_v<std::remove_reference_t<Expr>>)
@@ -110,6 +114,12 @@ class BlockView :
 
 		int m_pstart_row, m_pstart_column;
 };
+
+template <typename Parent, int N = internal::Traits<std::remove_cvref_t<Parent>>::columns>
+using RowVectorView = BlockView<Parent, 1, N>;
+
+template <typename Parent, int N = internal::Traits<std::remove_cvref_t<Parent>>::rows>
+using ColumnVectorView = BlockView<Parent, N, 1>;
 
 END_FCP_MATH_NAMESPACE
 END_FCP_NAMESPACE

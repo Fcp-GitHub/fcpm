@@ -1,7 +1,3 @@
-# Geometry
-- Quaternions
-- Transforms
-
 -- 0.7
 
 # 0.8 - 1.0
@@ -9,5 +5,14 @@
 - Analysis (mesh, differentiation, integration, ODEs, eigensolvers)
 
 # Additional
+- Force-inline, library API macros, etc.
 - Pretty-Print options (matrix in particular)
+- Assign matrix row/column to vector and viceversa
+- Mask operations
 - Block matrix broadcast constructor (linalg/matrix)
+- FloatTraits: look at the TODOs
+- Better trig functions (MINIMAX)
+- Euler angles' conventions (order, axes)
+
+--> Test!
+--> Benchmark!

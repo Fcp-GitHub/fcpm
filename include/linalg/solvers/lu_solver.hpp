@@ -106,10 +106,10 @@ class LUSolver
 			{
 				// Partial pivoting
 				int pivot_row_index{ k };
-				T max{ internal::abs(m_buffer[k, k]) };
+				T max{ fcp::math::abs(m_buffer[k, k]) };
 				for (int i{k + 1}; i < rank; i++)
 				{
-					T temp{ internal::abs(m_buffer[i, k]) };
+					T temp{ fcp::math::abs(m_buffer[i, k]) };
 
 					if (temp > max)
 					{
@@ -147,10 +147,10 @@ class LUSolver
 			{
 				// Partial pivoting
 				int pivot_row_index{ k };
-				T max{ internal::abs(m_buffer[k, k]) };
+				T max{ fcp::math::abs(m_buffer[k, k]) };
 				for (int i{k + 1}; i < rank; i++)
 				{
-					T temp{ internal::abs(m_buffer[i, k]) };
+					T temp{ fcp::math::abs(m_buffer[i, k]) };
 
 					if (temp > max)
 					{

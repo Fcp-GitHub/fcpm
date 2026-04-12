@@ -4,8 +4,8 @@
 #include "core/base.hpp"
 #include "core/common.hpp"
 
-#include "core/forward.hpp"
 #include "linalg/internal/kernels/gemm.hpp"
+#include "linalg/internal/kernels/mat_inverse.hpp"
 
 #include <numeric>
 #include <type_traits>
@@ -133,6 +133,7 @@ struct Traits<TransposeExpr<Expr, T>>
 
 	using materialized_type = Matrix<T, rows, columns, flags>;
 
+	//TODO: switch layout in traits?
 	static constexpr bool is_row_major{ etraits::is_row_major };
 	static constexpr bool is_writable{ false };
 };
@@ -165,8 +166,115 @@ struct TransposeExpr : UnaryExpressionBase<Expr, T, TransposeExpr<Expr, T>>
 // Inversion expression template
 //----------------------------------------------------------------------------------
 
-//template <typename Expr, typename T>
-//using InverseExpr = MemoizedUnaryExpression<Expr, T, InverseOp>;
+template <typename Expr, typename T>
+struct Traits<InverseExpr<Expr, T>>
+{
+	using etraits = Traits<std::remove_cvref_t<Expr>>;
+	using element_type = T;
+
+	static constexpr int rows{ etraits::rows };
+	static constexpr int columns{ etraits::columns };
+	static constexpr int size{ rows * columns };
+
+	static constexpr int flags{ etraits::flags };
+
+	using materialized_type = Matrix<T, rows, columns, flags>;
+
+	static constexpr bool is_row_major{ etraits::is_row_major };
+	static constexpr bool is_writable{ false };
+};
+
+template <typename Expr, typename T>
+struct InverseExpr : UnaryExpressionBase<Expr, T, InverseExpr<Expr, T>>
+{
+	using base = UnaryExpressionBase<Expr, T, InverseExpr<Expr, T>>;
+	using base::base;
+	using base::m_expr;
+
+	using etraits = Traits<std::remove_cvref_t<Expr>>;	
+	using buffer_t = Matrix<T, etraits::rows, etraits::columns, etraits::flags>;
+	using btraits  = Traits<buffer_t>;
+
+	mutable std::optional<buffer_t> m_mem;
+
+	constexpr auto evaluate(int i) const
+	{
+		constexpr int brows{ btraits::rows };
+		constexpr int bcols{ btraits::columns };
+
+		const int row{ btraits::is_row_major ? (i/bcols) : (i%brows) };
+		const int col{ btraits::is_row_major ? (i%bcols) : (i/brows) };
+
+		//NOTE: Do whatever is in your power to avoid this consteval branch.
+		//			For most of the situations it is not a good path, even for 
+		//			small matrices. The best options to compute an inverse
+		//			(both at compile-time and at runtime) are:
+		//			- materialize matrix through `eval()`
+		//			- use the LU solver, which is fully constexpr-capable
+		if consteval {
+			buffer_t temp;
+
+			kernels::inverse_dispatcher(temp, m_expr.eval());
+
+			return temp[row, col];
+		} else {
+
+			if (!m_mem) this->materialize();
+
+			return (*m_mem)[row, col];
+		}
+	}
+
+	constexpr auto evaluate(int row, int col) const
+	{
+		//NOTE: Do whatever is in your power to avoid this consteval branch.
+		//			For most of the situations it is not a good path, even for 
+		//			small matrices. The best options to compute an inverse
+		//			(both at compile-time and at runtime) are:
+		//			- materialize matrix through `eval()`
+		//			- use the LU solver, which is fully constexpr-capable
+		if consteval {
+			buffer_t temp;
+
+			kernels::inverse_dispatcher(temp, m_expr.eval());
+
+			return temp[row, col];
+		} else {
+
+			if (!m_mem) this->materialize();
+
+			return (*m_mem)[row, col];
+		}
+	}
+
+	constexpr void materialize() const
+	{
+		buffer_t mat{ mat_if_needed(m_expr) };
+
+		m_mem.emplace(static_cast<T>(0));
+
+		kernels::inverse_dispatcher(*m_mem, mat);	
+	}
+
+	constexpr void materialize_to(auto& buffer) const
+	{
+		buffer_t mat{ mat_if_needed(m_expr) };
+
+		kernels::inverse_dispatcher(buffer, mat);
+	}
+
+	private:
+		template <typename E>
+		constexpr auto mat_if_needed(E&& expr) const
+		{
+			using raw_t = std::remove_cvref_t<E>;
+
+			if constexpr (is_lazy_matrix_v<raw_t>)
+				return std::forward<E>(expr);
+			else
+				return expr.eval();
+		}
+};
 
 //----------------------------------------------------------------------------------
 // MM multiplication expression template
@@ -235,7 +343,7 @@ struct GemmExpr : BinaryExpressionBase<
 			lmat_t left{ mat_if_needed(m_left_expr) };
 			rmat_t right{ mat_if_needed(m_right_expr) };
 
-			return unrolled_dot<0, common>(left, right, row, col);
+			return kernels::unrolled_dot<0, common>(left, right, row, col);
 		} else {
 
 			if (!m_mem) this->materialize();
@@ -254,7 +362,7 @@ struct GemmExpr : BinaryExpressionBase<
 			lmat_t left{ mat_if_needed(m_left_expr) };
 			rmat_t right{ mat_if_needed(m_right_expr) };
 
-			return unrolled_dot<0, common>(left, right, row, col);
+			return kernels::unrolled_dot<0, common>(left, right, row, col);
 		} else {
 
 			if (!m_mem) this->materialize();
@@ -276,7 +384,7 @@ struct GemmExpr : BinaryExpressionBase<
 		m_mem.emplace(static_cast<T>(0)); // mandatory or std::optional doesn't see the initialization
 
 		// Let the dispatcher choose the best routine
-		gemm_dispatcher<merger::value>(*m_mem, left, right);	
+		kernels::gemm_dispatcher<merger::value>(*m_mem, left, right);	
 	}
 
 	constexpr void materialize_to(auto& buffer) const
@@ -285,9 +393,7 @@ struct GemmExpr : BinaryExpressionBase<
 		rmat_t right{ mat_if_needed(m_right_expr) };
 		//std::fill((*m_mem).begin(), (*m_mem).end(), static_cast<T>(0));
 
-		m_mem.emplace(static_cast<T>(0));	// mandatory or std::optional doesn't see the initialization
-
-		gemm_dispatcher<merger::value>(buffer, left, right);
+		kernels::gemm_dispatcher<merger::value>(buffer, left, right);
 	}
 
 	private:
@@ -307,9 +413,9 @@ END_FCP_INTERNAL_NAMESPACE
 START_FCP_OPERATORS_NAMESPACE
 template <typename L, typename R>
 	requires (
-			(LazyMatrixLike<L> || LazyVectorLike<L>) && 
-			(LazyMatrixLike<R> || LazyVectorLike<R>) &&
-			!(LazyVectorLike<L> && LazyVectorLike<R>)
+			(LazyMatrixLike<L> && LazyVectorLike<R>) || 
+			(LazyVectorLike<L> && LazyMatrixLike<R>) ||
+			(LazyMatrixLike<L> && LazyMatrixLike<R>)
 	)
 constexpr auto operator*(L&& left, R&& right)
 {
@@ -330,6 +436,19 @@ constexpr auto operator*(L&& left, R&& right)
 	>;
 
 	return internal::GemmExpr<lwt, rwt, T>(left, right);
+}
+
+// Multiply-Assign operator, only for materialized types
+template <LazyMaterializedType L, LazyMaterializedType R>
+	requires (
+			(LazyMatrixLike<L> || LazyVectorLike<L>) && 
+			(LazyMatrixLike<R> || LazyVectorLike<R>) &&
+			!(LazyVectorLike<L> && LazyVectorLike<R>) &&
+			!(LazyScalarLike<L> && !LazyScalarLike<R>)
+	)
+constexpr auto operator*=(L&& left, R&& right)
+{
+	return left = (left * right);
 }
 END_FCP_OPERATORS_NAMESPACE
 

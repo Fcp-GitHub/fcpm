@@ -2,9 +2,13 @@
 #define FCP_MATH_H_LAZY_OPERATORS_HPP
 
 #include <iostream>
+#include <type_traits>
 
 #include "core/base.hpp"
-#include "linalg/internal/expression_templates.hpp"
+#include "core/common.hpp"
+#include "core/expression_templates.hpp"
+
+#include "forward.hpp"
 #include "linalg/internal/scalar.hpp"
 
 START_FCP_NAMESPACE
@@ -71,6 +75,14 @@ constexpr auto operator+(L&& left, R&& right)
 	);																																		
 }	
 
+// Add-Assign, only for materialized types
+template <LazyMaterializedType L, LazyMaterializedType R>
+	requires (!(LazyScalarLike<L> && !LazyScalarLike<R>))
+constexpr auto operator+=(L&& left, R&& right)
+{
+	return left = (left + right);	
+}
+
 // Subtraction
 template <typename L, typename R>
 	requires LazyType<L> || LazyType<R>
@@ -86,6 +98,14 @@ constexpr auto operator-(L&& left, R&& right)
 			wrap_scalar(left),
 			wrap_scalar(right)
 	);
+}
+
+// Subtract-Assign, only for materialized types
+template <LazyMaterializedType L, LazyMaterializedType R>
+	requires (!(LazyScalarLike<L> && !LazyScalarLike<R>))
+constexpr auto operator-=(L&& left, R&& right)
+{
+	return left = (left - right);	
 }
 
 template <typename E>
@@ -119,6 +139,7 @@ constexpr auto operator-(E&& expr)
 //----------------------------------------------------
 
 template <LazyType M>
+	requires (!LazyVectorLike<M>)
 std::ostream& operator<<(std::ostream& out, const M& expr)
 {
 	const auto dim{ expr.size() };
@@ -129,11 +150,14 @@ std::ostream& operator<<(std::ostream& out, const M& expr)
 		out << expr[i] << ( ((i+1)%expr.rows() == 0) ? "\n " : ", ");
 	out << expr[dim - 1] << ')';
 
+	if (!internal::Traits<std::remove_cvref_t<M>>::is_row_major)
+		out << "^T";
+
 	return out;
 }
 
 template <LazyVectorLike V>
-std::ostream& operator<<(std::ostream& out, const V& expr)
+std::ostream& operator<<(std::ostream& out, V&& expr)
 {
 	const auto dim{ expr.size() };
 
@@ -150,15 +174,10 @@ std::ostream& operator<<(std::ostream& out, const V& expr)
 // Constraint templates
 //----------------------------------------------------------------------------------
 
-// Multiplication (matrix-scalar)
+// Scalar multiplication
 template <typename L, typename R>
-	requires (LazyType<L> || LazyType<R>) &&
-					 (!
-						(
-							(LazyMatrixLike<L> || LazyVectorLike<L>) && 
-							(LazyMatrixLike<R> || LazyVectorLike<R>)
-					  )
-					 )
+	requires (LazyType<L> && LazyScalarLike<R>) ||
+					 (LazyScalarLike<L> && LazyType<R>)
 constexpr auto operator*(L&& left, R&& right)
 {
 	using lwt = decltype(wrap_scalar(left));
@@ -172,16 +191,22 @@ constexpr auto operator*(L&& left, R&& right)
 			wrap_scalar(right)
 	);
 }
+
+// Multiply-Assign, only for materialized types
+template <LazyMaterializedType L, typename R>
+	requires (LazyMaterializedType<R> || LazyScalarLike<R>) && 
+					 (LazyType<L> && LazyScalarLike<R>) ||
+					 (LazyScalarLike<L> && LazyType<R>) &&
+					 (!(LazyScalarLike<L> && !LazyScalarLike<R>))
+constexpr auto operator*=(L&& left, R&& right)
+{
+	return left = (left * right).eval();	
+}
 		
-// Division (matrix-scalar)
+// Scalar division
 template <typename L, typename R>
-	requires (LazyType<L> || LazyType<R>) &&
-					 (!
-						(
-							(LazyMatrixLike<L> || LazyVectorLike<L>) && 
-							(LazyMatrixLike<R> || LazyVectorLike<R>)
-					  )
-					 )
+	requires (LazyType<L> && LazyScalarLike<R>) ||
+					 (LazyScalarLike<L> && LazyType<R>)
 constexpr auto operator/(L&& left, R&& right)
 {
 	using lwt = decltype(wrap_scalar(left));
@@ -194,6 +219,17 @@ constexpr auto operator/(L&& left, R&& right)
 			wrap_scalar(left),
 			wrap_scalar(right)
 	);
+}
+
+// Divide-Assign, only for materialized types
+template <LazyMaterializedType L, typename R>
+	requires (LazyMaterializedType<R> || LazyScalarLike<R>) && 
+					 (LazyType<L> && LazyScalarLike<R>) ||
+					 (LazyScalarLike<L> && LazyType<R>) &&
+					 (!(LazyScalarLike<L> && !LazyScalarLike<R>))
+constexpr auto operator/=(L&& left, R&& right)
+{
+	return left = (left / right).eval();	
 }
 
 END_FCP_OPERATORS_NAMESPACE

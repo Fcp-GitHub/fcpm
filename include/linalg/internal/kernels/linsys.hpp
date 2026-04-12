@@ -1,7 +1,6 @@
 #ifndef FCP_MATH_LINALG_INTERNAL_KERNELS_LINSYS_HPP
 #define FCP_MATH_LINALG_INTERNAL_KERNELS_LINSYS_HPP
 
-#include "core/base.hpp"
 #include "core/common.hpp"
 #include "core/math_fun.hpp"
 
@@ -135,16 +134,16 @@ constexpr auto gauss_elimination_impl(M& A, V& b, RowMajorTag)
 	{
 		// 1. Partial pivoting
 		int pivot_index{ i };
-		T max{ abs(A[i, i]) };
+		T max{ fcp::math::abs(A[i, i]) };
 		for (int k{i + 1}; k < rank; k++)
-			if (abs(A[k, i]) > max)
+			if (fcp::math::abs(A[k, i]) > max)
 			{
-				max = abs(A[k, i]);
+				max = fcp::math::abs(A[k, i]);
 				pivot_index = k;
 			}
 
 		//TODO: error handling
-		//if (cmp(A[pivot_index, i], static_cast<T>(0)))
+		//if (fcp::math::cmp(A[pivot_index, i], static_cast<T>(0)))
 		//		return -1;
 
 		// 2. Swap rows (physical swap)
@@ -188,7 +187,7 @@ constexpr auto gauss_elimination_impl(M& A, V& b, ColumnMajorTag)
 		//NOTE: contiguous access
 		int pivot_index{ i };
 		for (int k{i + 1}; k < rank; k++)
-			if (abs(A[k, i]) > abs(A[pivot_index, i]))
+			if (fcp::math::abs(A[k, i]) > fcp::math::abs(A[pivot_index, i]))
 				pivot_index = k;
 
 		//TODO: error handling

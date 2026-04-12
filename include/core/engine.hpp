@@ -177,13 +177,22 @@ struct Traits<ElementwiseBinaryExpression<LeftExpr, RightExpr, T, BinaryOp>>
 {
 	using ltraits = Traits<std::remove_cvref_t<LeftExpr>>;
 	using rtraits = Traits<std::remove_cvref_t<RightExpr>>;
+
+	// Save traits of "biggest" object
+	using max_traits = std::conditional_t<
+		(ltraits::size > rtraits::size),
+		ltraits,
+		rtraits
+	>;
+
 	using merger  = MatrixFlagsMerger<ltraits::flags, rtraits::flags>;
 	using element_type = T;
-	using materialized_type = ltraits::materialized_type;
+
+	using materialized_type = typename max_traits::materialized_type;
 	
 	// Assumes that both expressions have the same dimensions
-	static constexpr int rows{ ltraits::rows };
-	static constexpr int columns{ ltraits::columns };
+	static constexpr int rows{ max_traits::rows };
+	static constexpr int columns{ max_traits::columns };
 	static constexpr int size{ rows * columns };
 
 	static constexpr int flags{ merger::value };
@@ -222,7 +231,7 @@ struct ElementwiseBinaryExpression :
 		return BinaryOp()(m_left_expr.evaluate(i), m_right_expr.evaluate(i));
 	}
 
-	constexpr T evaluate(int row, int col) const
+	constexpr T evaluate(int row, int col) const 
 	{
 		return BinaryOp()(m_left_expr.evaluate(row, col), m_right_expr.evaluate(row, col));
 	}
