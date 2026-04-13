@@ -2,6 +2,7 @@
 
 #include "test_utils/ansi_seq.hpp"
 
+#include <array>
 #include <iostream>
 
 using type = int;
@@ -27,6 +28,16 @@ int main()
 	//
 	// 2. Value initialization
 	constexpr static mat_t mat_v{};
+
+	// Create a matrix using an array
+	constexpr static fcpm::Matrix<type, 4, 4> mat_ar{
+		std::array<type, 16>{
+			1, 2, 3, 4,
+			1, 2, 3, 4,
+			1, 2, 3, 4,
+			1, 2, 3, 4
+		}
+	};
 
 	// Create a matrix using a list of vectors
 	// 1. Temporaries

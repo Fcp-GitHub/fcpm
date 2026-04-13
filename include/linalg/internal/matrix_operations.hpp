@@ -448,7 +448,7 @@ template <LazyMaterializedType L, LazyMaterializedType R>
 	)
 constexpr auto operator*=(L&& left, R&& right)
 {
-	return left = (left * right);
+	return left = (left * right).eval();
 }
 END_FCP_OPERATORS_NAMESPACE
 

@@ -1,4 +1,3 @@
-#include "core/common.hpp"
 #include "linalg/matrix.hpp"
 #include "geometry/transforms.hpp"
 

@@ -116,13 +116,11 @@ constexpr auto ortho_sym(T right, T top, T near, T far)
 	constexpr auto one{ static_cast<T>(1) };
 	constexpr auto two{ static_cast<T>(2) };
 
-	const T inv_r{ one / right };
-	const T inv_t{ one / top };
 	const T inv_fn{ one / (far - near) };
 
 	// 1. Common diagonal elements (scaling components)
-	result[0, 0] = two * inv_r;	// X scaling
-	result[1, 1] = two * inv_t;	// Y scaling
+	result[0, 0] = one / right;	// X scaling
+	result[1, 1] = one / top;	// Y scaling
 
 	// Z scaling (depends both on target range and handedness)
 	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
@@ -168,7 +166,7 @@ constexpr auto ortho_sym(T right, T top, T near, T far)
 // Perspective Projection
 //----------------------------------------------------------------------------------
 
-// Standard perspective projection
+// Standard perspective projection with custom frustum
 template <
 	bool ColumnVectorFormat = FCPM_GRAPHICS_USE_CVECTOR_FORMAT,
 	bool IsLeftHanded = FCPM_GRAPHICS_USE_LHS_SYSTEM, 
@@ -229,8 +227,8 @@ constexpr auto persp(T left, T right, T bottom, T top, T near, T far)
 	// Store based on vector convention
 	if constexpr (ColumnVectorFormat)
 	{
-		result[0, 3] = tx;
-		result[1, 3] = ty;
+		result[0, 2] = tx;
+		result[1, 2] = ty;
 		result[2, 3] = tz;
 		
 		if constexpr (IsLeftHanded)
@@ -241,8 +239,8 @@ constexpr auto persp(T left, T right, T bottom, T top, T near, T far)
 		}
 
 	} else {
-		result[3, 0] = tx;
-		result[3, 1] = ty;
+		result[2, 0] = tx;
+		result[2, 1] = ty;
 		result[3, 2] = tz;
 
 		if constexpr (IsLeftHanded)
@@ -257,88 +255,88 @@ constexpr auto persp(T left, T right, T bottom, T top, T near, T far)
 	return result;
 }
 
-// Symmetric perspective projection from right and top coordinates
-template <
-	bool ColumnVectorFormat = FCPM_GRAPHICS_USE_CVECTOR_FORMAT,
-	bool IsLeftHanded = FCPM_GRAPHICS_USE_LHS_SYSTEM, 
-	DepthInterval D = FCPMG_DEFAULT_DEPTH_INT, 
-	typename T,
-	Lazy4x4MatrixType Matrix = DefaultMatrixType<T, 4, 4>
->
-constexpr auto persp_symm(T right, T top, T near, T far)
-{
-	//TODO:error handling with assert and [[unlikely]]
-
-	using mtraits = internal::Traits<std::remove_cvref_t<Matrix>>;
-
-	auto result{ Matrix(static_cast<T>(0)) };
-
-	constexpr auto one{ static_cast<T>(1) };
-	constexpr auto two{ static_cast<T>(2) };
-
-	const T inv_r{ one / right };
-	const T inv_t{ one / top };
-	const T inv_fn{ one / (far - near) };
-
-	// 1. Common diagonal elements (scaling components)
-	result[0, 0] = near * inv_r;	// X scaling
-	result[1, 1] = near * inv_t;	// Y scaling
-	
-	// Z scaling (depends both on target range and handedness)
-	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
-	{
-		if constexpr (IsLeftHanded)
-		{
-			result[2, 2] = (far + near) * inv_fn;
-		} else {
-			result[2, 2] = -(far + near) * inv_fn;
-		}
-	} else {																			 // Range: [0, 1]
-		if constexpr (IsLeftHanded)
-		{
-			result[2, 2] = far * inv_fn;
-		} else {
-			result[2, 2] = -far * inv_fn;
-		}
-	}
-
-	// 2. Non-diagonal elements (Only z translation component)
-	T tz;
-
-	// Z translation depends on target range, not on handedness
-	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
-	{
-			tz = -two * far * near * inv_fn;
-	} else {																			 // Range: [0, 1]
-			tz = -far * near * inv_fn;
-	}
-
-	// Store based on vector convention
-	if constexpr (ColumnVectorFormat)
-	{
-		result[2, 3] = tz;
-		
-		if constexpr (IsLeftHanded)
-		{
-			result[3, 2] = one;
-		} else {
-			result[3, 2] = static_cast<T>(-1);
-		}
-
-	} else {
-		result[3, 2] = tz;
-
-		if constexpr (IsLeftHanded)
-		{
-			result[2, 3] = one;
-		} else {
-			result[2, 3] = static_cast<T>(-1);
-		}
-
-	}
-
-	return result;
-}
+//// Symmetric perspective projection from right and top coordinates
+//template <
+//	bool ColumnVectorFormat = FCPM_GRAPHICS_USE_CVECTOR_FORMAT,
+//	bool IsLeftHanded = FCPM_GRAPHICS_USE_LHS_SYSTEM, 
+//	DepthInterval D = FCPMG_DEFAULT_DEPTH_INT, 
+//	typename T,
+//	Lazy4x4MatrixType Matrix = DefaultMatrixType<T, 4, 4>
+//>
+//constexpr auto persp_sym(T right, T top, T near, T far)
+//{
+//	//TODO:error handling with assert and [[unlikely]]
+//
+//	using mtraits = internal::Traits<std::remove_cvref_t<Matrix>>;
+//
+//	auto result{ Matrix(static_cast<T>(0)) };
+//
+//	constexpr auto one{ static_cast<T>(1) };
+//	constexpr auto two{ static_cast<T>(2) };
+//
+//	const T inv_r{ one / right };
+//	const T inv_t{ one / top };
+//	const T inv_fn{ one / (far - near) };
+//
+//	// 1. Common diagonal elements (scaling components)
+//	result[0, 0] = near * inv_r;	// X scaling
+//	result[1, 1] = near * inv_t;	// Y scaling
+//	
+//	// Z scaling (depends both on target range and handedness)
+//	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
+//	{
+//		if constexpr (IsLeftHanded)
+//		{
+//			result[2, 2] = (far + near) * inv_fn;
+//		} else {
+//			result[2, 2] = -(far + near) * inv_fn;
+//		}
+//	} else {																			 // Range: [0, 1]
+//		if constexpr (IsLeftHanded)
+//		{
+//			result[2, 2] = far * inv_fn;
+//		} else {
+//			result[2, 2] = -far * inv_fn;
+//		}
+//	}
+//
+//	// 2. Non-diagonal elements (Only z translation component)
+//	T tz;
+//
+//	// Z translation depends on target range, not on handedness
+//	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
+//	{
+//			tz = -two * far * near * inv_fn;
+//	} else {																			 // Range: [0, 1]
+//			tz = -far * near * inv_fn;
+//	}
+//
+//	// Store based on vector convention
+//	if constexpr (ColumnVectorFormat)
+//	{
+//		result[2, 3] = tz;
+//		
+//		if constexpr (IsLeftHanded)
+//		{
+//			result[3, 2] = one;
+//		} else {
+//			result[3, 2] = static_cast<T>(-1);
+//		}
+//
+//	} else {
+//		result[3, 2] = tz;
+//
+//		if constexpr (IsLeftHanded)
+//		{
+//			result[2, 3] = one;
+//		} else {
+//			result[2, 3] = static_cast<T>(-1);
+//		}
+//
+//	}
+//
+//	return result;
+//}
 
 // Symmetric perspective projection from FOV and aspect ratio
 //NOTE: if VerticalFOV is true, aspect_ratio should be WIDTH/HEIGHT
@@ -352,7 +350,7 @@ template <
 	typename T,
 	Lazy4x4MatrixType Matrix = DefaultMatrixType<T, 4, 4>
 >
-constexpr auto persp_symm(T fov, T aspect_ratio, T near, T far)
+constexpr auto persp_sym(T fov, T aspect_ratio, T near, T far)
 {
 	//TODO: error handling, especially for aspect ratio
 	
@@ -368,10 +366,10 @@ constexpr auto persp_symm(T fov, T aspect_ratio, T near, T far)
 	// 1. Common diagonal elements (scaling components)
 	if constexpr (VerticalFOV)
 	{
-		result[1, 1] = one / fcp::math::tan(fov / two);
+		result[1, 1] = two / fcp::math::tan(fov);
 		result[0, 0] = result[1, 1] / aspect_ratio;
 	} else {
-		result[0, 0] = one / fcp::math::tan(fov / two);
+		result[0, 0] = two / fcp::math::tan(fov);
 		result[1, 1] = result[0, 0] / aspect_ratio;
 	}
 	
@@ -481,8 +479,8 @@ constexpr auto persp_inf(T left, T right, T bottom, T top, T near)
 	// Store based on vector convention
 	if constexpr (ColumnVectorFormat)
 	{
-		result[0, 3] = tx;
-		result[1, 3] = ty;
+		result[0, 2] = tx;
+		result[1, 2] = ty;
 		result[2, 3] = tz;
 		
 		if constexpr (IsLeftHanded)
@@ -493,7 +491,7 @@ constexpr auto persp_inf(T left, T right, T bottom, T top, T near)
 		}
 
 	} else {
-		result[3, 0] = tx;
+		result[2, 0] = tx;
 		result[3, 1] = ty;
 		result[3, 2] = tz;
 
@@ -509,77 +507,77 @@ constexpr auto persp_inf(T left, T right, T bottom, T top, T near)
 	return result;
 }
 
-// Infinite symmetric perspective projection
-template <
-	bool ColumnVectorFormat = FCPM_GRAPHICS_USE_CVECTOR_FORMAT,
-	bool IsLeftHanded = FCPM_GRAPHICS_USE_LHS_SYSTEM, 
-	DepthInterval D = FCPMG_DEFAULT_DEPTH_INT, 
-	typename T,
-	Lazy4x4MatrixType Matrix = DefaultMatrixType<T, 4, 4>
->
-constexpr auto persp_inf_symm(T right, T top, T near)
-{
-	//TODO:error handling with assert and [[unlikely]]
-
-	using mtraits = internal::Traits<std::remove_cvref_t<Matrix>>;
-
-	auto result{ Matrix(static_cast<T>(0)) };
-
-	constexpr auto one{ static_cast<T>(1) };
-	constexpr auto two{ static_cast<T>(2) };
-
-	const T inv_r{ one / right };
-	const T inv_t{ one / top };
-
-	// 1. Common diagonal elements (scaling components)
-	result[0, 0] = near * inv_r;	// X scaling
-	result[1, 1] = near * inv_t;	// Y scaling
-	
-	// Z scaling (depends only on handedness)
-	if constexpr (IsLeftHanded)
-	{
-		result[2, 2] = one;
-	} else {
-		result[2, 2] = static_cast<T>(-1);
-	}
-
-	// 2. Non-diagonal elements (Only z translation component)
-	T tz;
-
-	// Z translation depends on target range, not on handedness
-	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
-	{
-			tz = static_cast<T>(-2) * near;
-	} else {																			 // Range: [0, 1]
-			tz = -near;
-	}
-
-	// Store based on vector convention
-	if constexpr (ColumnVectorFormat)
-	{
-		result[2, 3] = tz;
-		
-		if constexpr (IsLeftHanded)
-		{
-			result[3, 2] = one;
-		} else {
-			result[3, 2] = static_cast<T>(-1);
-		}
-
-	} else {
-		result[3, 2] = tz;
-
-		if constexpr (IsLeftHanded)
-		{
-			result[2, 3] = one;
-		} else {
-			result[2, 3] = static_cast<T>(-1);
-		}
-
-	}
-
-	return result;
-}
+//// Infinite symmetric perspective projection
+//template <
+//	bool ColumnVectorFormat = FCPM_GRAPHICS_USE_CVECTOR_FORMAT,
+//	bool IsLeftHanded = FCPM_GRAPHICS_USE_LHS_SYSTEM, 
+//	DepthInterval D = FCPMG_DEFAULT_DEPTH_INT, 
+//	typename T,
+//	Lazy4x4MatrixType Matrix = DefaultMatrixType<T, 4, 4>
+//>
+//constexpr auto persp_inf_sym(T right, T top, T near)
+//{
+//	//TODO:error handling with assert and [[unlikely]]
+//
+//	using mtraits = internal::Traits<std::remove_cvref_t<Matrix>>;
+//
+//	auto result{ Matrix(static_cast<T>(0)) };
+//
+//	constexpr auto one{ static_cast<T>(1) };
+//	constexpr auto two{ static_cast<T>(2) };
+//
+//	const T inv_r{ one / right };
+//	const T inv_t{ one / top };
+//
+//	// 1. Common diagonal elements (scaling components)
+//	result[0, 0] = near * inv_r;	// X scaling
+//	result[1, 1] = near * inv_t;	// Y scaling
+//	
+//	// Z scaling (depends only on handedness)
+//	if constexpr (IsLeftHanded)
+//	{
+//		result[2, 2] = one;
+//	} else {
+//		result[2, 2] = static_cast<T>(-1);
+//	}
+//
+//	// 2. Non-diagonal elements (Only z translation component)
+//	T tz;
+//
+//	// Z translation depends on target range, not on handedness
+//	if constexpr (D == DepthInterval::NegOneToOne) // Range: [-1, +1]
+//	{
+//			tz = static_cast<T>(-2) * near;
+//	} else {																			 // Range: [0, 1]
+//			tz = -near;
+//	}
+//
+//	// Store based on vector convention
+//	if constexpr (ColumnVectorFormat)
+//	{
+//		result[2, 3] = tz;
+//		
+//		if constexpr (IsLeftHanded)
+//		{
+//			result[3, 2] = one;
+//		} else {
+//			result[3, 2] = static_cast<T>(-1);
+//		}
+//
+//	} else {
+//		result[3, 2] = tz;
+//
+//		if constexpr (IsLeftHanded)
+//		{
+//			result[2, 3] = one;
+//		} else {
+//			result[2, 3] = static_cast<T>(-1);
+//		}
+//
+//	}
+//
+//	return result;
+//}
 
 // Infinite symmetric perspective projection using FOV and aspect ratio
 //NOTE: if VerticalFOV is true, aspect_ratio should be WIDTH/HEIGHT
@@ -593,7 +591,7 @@ template <
 	typename T,
 	Lazy4x4MatrixType Matrix = DefaultMatrixType<T, 4, 4>
 >
-constexpr auto persp_inf_symm(T fov, T aspect_ratio, T top, T near)
+constexpr auto persp_inf_sym(T fov, T aspect_ratio, T near)
 {
 	//TODO:error handling with assert and [[unlikely]]
 
@@ -607,10 +605,10 @@ constexpr auto persp_inf_symm(T fov, T aspect_ratio, T top, T near)
 	// 1. Common diagonal elements (scaling components)
 	if constexpr (VerticalFOV)
 	{
-		result[1, 1] = one / fcp::math::tan(fov / two);
+		result[1, 1] = two / fcp::math::tan(fov);
 		result[0, 0] = result[1, 1] / aspect_ratio;
 	} else {
-		result[0, 0] = one / fcp::math::tan(fov / two);
+		result[0, 0] = two / fcp::math::tan(fov);
 		result[1, 1] = result[0, 0] / aspect_ratio;
 	}
 	
@@ -665,39 +663,46 @@ constexpr auto persp_inf_symm(T fov, T aspect_ratio, T top, T near)
 //----------------------------------------------------------------------------------
 
 // Compute LookAt matrix
-//NOTE: defaults to LH, column-major matrix
 template <
+	bool ColumnVectorFormat = FCPM_GRAPHICS_USE_CVECTOR_FORMAT,
 	bool IsLeftHanded = FCPM_GRAPHICS_USE_LHS_SYSTEM, 
-	LazyVectorLike EyeVector,
-	LazyVectorLike AtVector,
-	LazyVectorLike UpVector,
+	Lazy3DVectorLike EyeVector,
+	Lazy3DVectorLike AtVector,
+	Lazy3DVectorLike UpVector,
 	Lazy4x4MatrixType Matrix = DefaultMatrixType<
 		typename internal::Traits<std::remove_cvref_t<EyeVector>>::element_type, 4, 4>
 	>
 constexpr auto look_at(const EyeVector& eye, const AtVector& at, const UpVector& world_up) 
 {
 	using vtraits = internal::Traits<std::remove_cvref_t<EyeVector>>;
+	using mater_t = vtraits::materialized_type;
 	using T = vtraits::element_type;
 	enum { X, Y, Z };
 
 	constexpr auto zero{ static_cast<T>(0) };
+	constexpr auto one{ static_cast<T>(1) };
 
-	const auto fwd{ normalize(at - eye) };
-	const auto right{ cross(world_up, fwd) };
-	
+	const auto fwd{ normalize(eye - at) };
+	auto right{ normalize(cross(world_up, fwd)).eval() };
+
 	// If cross product is zero, use fallback vector
-	bool parallel{ false };
-	for (int i{0}; i < 3; i++)
-		if (fcp::math::cmp(right[i], zero)) parallel = true;
+	bool parallel{ fcp::math::cmp(fcp::math::l2norm_sq(right), zero) };
 
-	if (parallel) right = typename vtraits::materialized_type{zero, zero, static_cast<T>(1)};
+	// Choose a fallback vector for right based on fwd's direction
+	if (parallel) 
+	{
+		if (fcp::math::abs(fwd[Y]) > static_cast<T>(0.9999L))
+			right = normalize(cross(mater_t{zero, zero, one}, fwd)).eval();
+		else
+			right = normalize(cross(mater_t{one, zero, zero}, fwd)).eval();
+	}
 
 	const auto nup{ cross(fwd, right) };
 
 	const auto dre{ -dot(right, eye) };
 	const auto due{ -dot(nup, eye) };
 
-	if constexpr (vtraits::is_row_major) // Row-Vector system
+	if constexpr (!ColumnVectorFormat) // Row-Vector system
 	{
 		if constexpr (IsLeftHanded)	// Left-Handed system
 		{

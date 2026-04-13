@@ -1,18 +1,18 @@
--- 0.7
+-- 0.5
 
-# 0.8 - 1.0
+# 0.6 - 0.7
 - SIMD
-- Analysis (mesh, differentiation, integration, ODEs, eigensolvers)
-
-# Additional
-- Force-inline, library API macros, etc.
-- Pretty-Print options (matrix in particular)
-- Assign matrix row/column to vector and viceversa
 - Mask operations
+- Pretty-Print options (matrix in particular)
+- Force-inline, library API macros, etc.
+- Better expression-trees handling
+- Better trig functions (MINIMAX)
+- Assign matrix row/column to vector and viceversa
 - Block matrix broadcast constructor (linalg/matrix)
 - FloatTraits: look at the TODOs
-- Better trig functions (MINIMAX)
 - Euler angles' conventions (order, axes)
+
+- Analysis (mesh, differentiation, integration, ODEs, eigensolvers)
 
 --> Test!
 --> Benchmark!

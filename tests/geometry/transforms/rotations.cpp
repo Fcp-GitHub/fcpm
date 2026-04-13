@@ -6,7 +6,7 @@
 #include <iostream>
 #include <numbers>
 
-#define QUALIFIER constexpr
+#define QUALIFIER const
 
 namespace fcpm = fcp::math;
 
@@ -15,15 +15,7 @@ using type = double;
 void test_std(const auto& first, const auto& result)
 {
 	std::cout << "Initial data: " << first << '\n';
-	//std::cout << "(Type: " << utility::type_name<decltype(first)>() << ")\n";
 	std::cout << "Rotated data: " << result << '\n';
-	//std::cout << "(Type: " << utility::type_name<decltype(result)>() << ")\n";
-
-	//std::cout << "Component-wise ULPs:\n";
-	//std::cout << "result[0]: " << utility::get_ulps(result[0], static_cast<type>(0.)) << '\n';
-	//std::cout << "result[1]: " << utility::get_ulps(result[1], static_cast<type>(0.)) << '\n';
-	//std::cout << "result[2]: " << utility::get_ulps(result[2], static_cast<type>(0.)) << '\n';
-
 	std::cout << std::endl;
 }
 
