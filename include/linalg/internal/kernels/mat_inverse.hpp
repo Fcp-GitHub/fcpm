@@ -18,7 +18,7 @@ constexpr void get_inverse_2x2(auto& result, const M& m)
 	using mat_t = std::remove_cvref_t<M>;
 	using T = Traits<mat_t>::element_type;
 
-	auto inv_det{ static_cast<T>(1) / (m[0, 0]*m[1, 1] - m[0, 1]*m[1, 0]) };
+	const auto inv_det{ static_cast<T>(1) / (m[0, 0]*m[1, 1] - m[0, 1]*m[1, 0]) };
 
 	result[0, 0] = m[1, 1]*inv_det;
 	result[0, 1] = -m[0, 1]*inv_det;
@@ -36,7 +36,7 @@ constexpr void get_inverse_3x3(auto& result, const M& m)
 	result[1, 0] = (m[1, 2]*m[2, 0] - m[1, 0]*m[2, 2]);
 	result[2, 0] = (m[1, 0]*m[2, 1] - m[1, 1]*m[2, 0]);
 
-	auto inv_det{ 
+	const auto inv_det{ 
 		static_cast<T>(1) / 
 		(m[0, 0]*result[0, 0] + m[0, 1]*result[1, 0] + m[0, 2]*result[2, 0]) 
 	};
@@ -58,42 +58,42 @@ constexpr void get_inverse_4x4(auto& result, const M& m)
 	using mat_t = std::remove_cvref_t<M>;
   using T = Traits<mat_t>::element_type;
   
-  T b00{ m[2, 2] * m[3, 3] - m[2, 3] * m[3, 2] };
-  T b01{ m[2, 1] * m[3, 3] - m[2, 3] * m[3, 1] };
-  T b02{ m[2, 1] * m[3, 2] - m[2, 2] * m[3, 1] };
-  T b03{ m[2, 0] * m[3, 3] - m[2, 3] * m[3, 0] };
-  T b04{ m[2, 0] * m[3, 2] - m[2, 2] * m[3, 0] };
-  T b05{ m[2, 0] * m[3, 1] - m[2, 1] * m[3, 0] };
-  T b06{ m[1, 2] * m[3, 3] - m[1, 3] * m[3, 2] };
-  T b07{ m[1, 1] * m[3, 3] - m[1, 3] * m[3, 1] };
-  T b08{ m[1, 1] * m[3, 2] - m[1, 2] * m[3, 1] };
-  T b09{ m[1, 0] * m[3, 3] - m[1, 3] * m[3, 0] };
-  T b10{ m[1, 0] * m[3, 2] - m[1, 2] * m[3, 0] };
-  T b11{ m[1, 0] * m[3, 1] - m[1, 1] * m[3, 0] };
-  T b12{ m[1, 2] * m[2, 3] - m[1, 3] * m[2, 2] };
-  T b13{ m[1, 1] * m[2, 3] - m[1, 3] * m[2, 1] };
-  T b14{ m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1] };
-  T b15{ m[1, 0] * m[2, 3] - m[1, 3] * m[2, 0] };
-  T b16{ m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0] };
-  T b17{ m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0] };
+  const T b00{ m[2, 2] * m[3, 3] - m[2, 3] * m[3, 2] };
+  const T b01{ m[2, 1] * m[3, 3] - m[2, 3] * m[3, 1] };
+  const T b02{ m[2, 1] * m[3, 2] - m[2, 2] * m[3, 1] };
+  const T b03{ m[2, 0] * m[3, 3] - m[2, 3] * m[3, 0] };
+  const T b04{ m[2, 0] * m[3, 2] - m[2, 2] * m[3, 0] };
+  const T b05{ m[2, 0] * m[3, 1] - m[2, 1] * m[3, 0] };
+  const T b06{ m[1, 2] * m[3, 3] - m[1, 3] * m[3, 2] };
+  const T b07{ m[1, 1] * m[3, 3] - m[1, 3] * m[3, 1] };
+  const T b08{ m[1, 1] * m[3, 2] - m[1, 2] * m[3, 1] };
+  const T b09{ m[1, 0] * m[3, 3] - m[1, 3] * m[3, 0] };
+  const T b10{ m[1, 0] * m[3, 2] - m[1, 2] * m[3, 0] };
+  const T b11{ m[1, 0] * m[3, 1] - m[1, 1] * m[3, 0] };
+  const T b12{ m[1, 2] * m[2, 3] - m[1, 3] * m[2, 2] };
+  const T b13{ m[1, 1] * m[2, 3] - m[1, 3] * m[2, 1] };
+  const T b14{ m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1] };
+  const T b15{ m[1, 0] * m[2, 3] - m[1, 3] * m[2, 0] };
+  const T b16{ m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0] };
+  const T b17{ m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0] };
 
   // Compute cofactors
-  T c00{   m[1, 1] * b00 - m[1, 2] * b01 + m[1, 3] * b02  };
-  T c01{ -(m[1, 0] * b00 - m[1, 2] * b03 + m[1, 3] * b04) };
-  T c02{   m[1, 0] * b01 - m[1, 1] * b03 + m[1, 3] * b05  };
-  T c03{ -(m[1, 0] * b02 - m[1, 1] * b04 + m[1, 2] * b05) };
+  const T c00{   m[1, 1] * b00 - m[1, 2] * b01 + m[1, 3] * b02  };
+  const T c01{ -(m[1, 0] * b00 - m[1, 2] * b03 + m[1, 3] * b04) };
+  const T c02{   m[1, 0] * b01 - m[1, 1] * b03 + m[1, 3] * b05  };
+  const T c03{ -(m[1, 0] * b02 - m[1, 1] * b04 + m[1, 2] * b05) };
 
 	// Re-compute determinant for two main reasons (micro-optimization):
 	// 1. The determinant has many common factors (avoid redundant calculations)
 	// 2. Avoid function call
-  T det{ m[0, 0] * c00 + m[0, 1] * c01 + m[0, 2] * c02 + m[0, 3] * c03 };
+  const T det{ m[0, 0] * c00 + m[0, 1] * c01 + m[0, 2] * c02 + m[0, 3] * c03 };
   
   //TODO: Check for singularity?
   //if (cmp(det, T{0})) {
   //    throw std::runtime_error("Matrix is singular");
   //}
 
-  T inv_det{ static_cast<T>(1) / det };
+  const T inv_det{ static_cast<T>(1) / det };
 
   result[0, 0] = c00 * inv_det;
   result[1, 0] = c01 * inv_det;
@@ -121,7 +121,7 @@ template <int N>
 constexpr void inverse_tiny_solver(auto& result, const auto& matrix)
 {
 	if constexpr (N == 2) get_inverse_2x2(result, matrix);
-	if constexpr (N == 3) get_inverse_3x3(result, matrix);
+	else if constexpr (N == 3) get_inverse_3x3(result, matrix);
 	else get_inverse_4x4(result, matrix);
 }
 

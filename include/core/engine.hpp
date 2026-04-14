@@ -179,6 +179,7 @@ struct Traits<ElementwiseBinaryExpression<LeftExpr, RightExpr, T, BinaryOp>>
 	using rtraits = Traits<std::remove_cvref_t<RightExpr>>;
 
 	// Save traits of "biggest" object
+	// for broadcast operations
 	using max_traits = std::conditional_t<
 		(ltraits::size > rtraits::size),
 		ltraits,

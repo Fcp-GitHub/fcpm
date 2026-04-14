@@ -29,6 +29,7 @@ inline constexpr int RowMajor{ 0x01 };
 inline constexpr int ColumnMajor{ 0x02 };
 inline constexpr int StaticStorage{ 0x04 };
 inline constexpr int UseSIMD{ 0x08 };
+inline constexpr int JollyFlag{ 0b1111 };	// For scalar types
 
 inline constexpr int MatrixDefaultFlags{ RowMajor | StaticStorage };
 

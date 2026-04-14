@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_T_DETAIL_EAGER_VEC_HPP
 #define FCP_MATH_T_DETAIL_EAGER_VEC_HPP
 
-#include "math_types/common.hpp"
+#include "core/common.hpp"
 
 #include <array>
 

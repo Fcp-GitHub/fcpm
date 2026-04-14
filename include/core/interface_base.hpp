@@ -1,6 +1,7 @@
 #ifndef FCP_MATH_LINALG_INTERFACE_BASE_HPP
 #define FCP_MATH_LINALG_INTERFACE_BASE_HPP
 
+#include "core/base.hpp"
 #include "core/common.hpp"
 #include "core/forward.hpp"
 #include "core/expression_iterator.hpp"
@@ -136,19 +137,26 @@ struct InterfaceBase : PluginIfAvailable<std::remove_cvref_t<Derived>>
 	constexpr auto eval() const
 	{
 		using raw_t    = std::remove_cvref_t<Derived>;
-		using result_t = typename Traits<raw_t>::materialized_type;
 
-		result_t result{};
+		// Detect unnecessary materialization requests
+		if constexpr (is_lazy_matrix_v<raw_t>) return derived();
+		else {
 
-		if constexpr (requires { derived().materialize_to(result); })
-		{
-			derived().materialize_to(result);	
-		} else {
-			for (int i{ 0 }; i < result.size(); i++)
-				result[i] = derived()[i];	
+			using result_t = typename Traits<raw_t>::materialized_type;
+
+			result_t result{};
+
+			if constexpr (requires { derived().materialize_to(result); })
+			{
+				derived().materialize_to(result);	
+			} else {
+				for (int i{ 0 }; i < result.size(); i++)
+					result[i] = derived()[i];	
+			}
+			
+			return result;
+
 		}
-		
-		return result;
 	}
 
 	template <LazyMatrixLike Self>

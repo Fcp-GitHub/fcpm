@@ -38,7 +38,7 @@ template <int N>
 constexpr auto determinant_tiny_solver(const auto& matrix)
 {
 	if constexpr (N == 2) return get_determinant_2x2(matrix);
-	if constexpr (N == 3) return get_determinant_3x3(matrix);
+	else if constexpr (N == 3) return get_determinant_3x3(matrix);
 	return get_determinant_4x4(matrix);
 }
 

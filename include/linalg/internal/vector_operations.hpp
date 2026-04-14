@@ -98,15 +98,25 @@ constexpr auto cross(LeftExpr&& left, RightExpr&& right)
 	using rtraits = internal::Traits<std::remove_cvref_t<RightExpr>>;
 
 	using element_t = std::common_type_t<typename ltraits::element_type, typename rtraits::element_type>;
+	using result_t = typename internal::Traits<
+		internal::CrossProductExpr<LeftExpr, RightExpr, element_t>
+	>::materialized_type;
 
 	//static_assert(ltraits::size == 3 && rtraits::size == 3, 
 	//		"Cross product is only defined for 3D vectors."
 	//);
 
-	return internal::CrossProductExpr<LeftExpr, RightExpr, element_t>(
-		std::forward<LeftExpr>(left),
-		std::forward<RightExpr>(right)
-	);
+	//TODO: benchmarks show that eager evaluation is better for 3D vectors
+	//return internal::CrossProductExpr<LeftExpr, RightExpr, element_t>(
+	//	std::forward<LeftExpr>(left),
+	//	std::forward<RightExpr>(right)
+	//);
+	
+	return result_t{
+		left.evaluate(1)*right.evaluate(2) - right.evaluate(1)*left.evaluate(2),
+		right.evaluate(0)*left.evaluate(2) - left.evaluate(0)*right.evaluate(2),
+		left.evaluate(0)*right.evaluate(1) - right.evaluate(0)*left.evaluate(1)	
+	};	
 }
 
 //----------------------------------------------------------------------------------

@@ -21,7 +21,7 @@ struct Traits<Scalar<T>>
 	static constexpr int rows{ 1 };
 	static constexpr int columns{ 1 };
 	static constexpr int size{ 1 };
-	static constexpr int flags{ 0 };	// Compatible with all options
+	static constexpr int flags{ JollyFlag };	// Compatible with all options
 
 	static constexpr bool is_row_major{ true };
 	static constexpr bool is_writable{ true };
