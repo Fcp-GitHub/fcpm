@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_GEOMETRY_INTERNAL_QUATERNION_OPERATIONS_HPP
 #define FCP_MATH_GEOMETRY_INTERNAL_QUATERNION_OPERATIONS_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 #include "core/math_fun.hpp"
 #include "core/operators.hpp"
 

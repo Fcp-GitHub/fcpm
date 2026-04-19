@@ -1,8 +1,7 @@
 #ifndef FCP_MATH_H_LAZY_VECTOR_OPERATIONS_HPP
 #define FCP_MATH_H_LAZY_VECTOR_OPERATIONS_HPP
 
-#include "core/common.hpp"
-#include "core/forward.hpp"
+#include "core/internal/common.hpp"
 #include "core/math_fun.hpp"
 #include "core/operators.hpp"
 
@@ -112,11 +111,13 @@ constexpr auto cross(LeftExpr&& left, RightExpr&& right)
 	//	std::forward<RightExpr>(right)
 	//);
 	
-	return result_t{
-		left.evaluate(1)*right.evaluate(2) - right.evaluate(1)*left.evaluate(2),
-		right.evaluate(0)*left.evaluate(2) - left.evaluate(0)*right.evaluate(2),
-		left.evaluate(0)*right.evaluate(1) - right.evaluate(0)*left.evaluate(1)	
-	};	
+	result_t result;
+
+	result[0] = left.evaluate(1)*right.evaluate(2) - right.evaluate(1)*left.evaluate(2);	
+	result[1] = right.evaluate(0)*left.evaluate(2) - left.evaluate(0)*right.evaluate(2);
+	result[2] = left.evaluate(0)*right.evaluate(1) - right.evaluate(0)*left.evaluate(1);	
+
+	return result;	
 }
 
 //----------------------------------------------------------------------------------

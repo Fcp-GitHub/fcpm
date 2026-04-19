@@ -1,8 +1,8 @@
 #ifndef FCPUT_LAZYEVAL_LAZY_ENGINE_HPP
 #define FCPUT_LAZYEVAL_LAZY_ENGINE_HPP
 
-#include "core/common.hpp"
-#include "core/interface_base.hpp"
+#include "core/internal/common.hpp"
+#include "core/internal/interface_base.hpp"
 
 #include <cstddef>
 #include <optional>

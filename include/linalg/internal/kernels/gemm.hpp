@@ -1,8 +1,7 @@
 #ifndef FCP_MATH_LINALG_SOLVERS_GEMM_HPP
 #define FCP_MATH_LINALG_SOLVERS_GEMM_HPP
 
-#include "core/common.hpp"
-#include "core/hardware.hpp"
+#include "core/internal/common.hpp"
 
 #include "linalg/internal/storage_base.hpp"
 
@@ -147,7 +146,7 @@ constexpr void gemm_dispatcher(Result& result, const LeftExpr& lexpr, const Righ
 
 	if constexpr (lrows <= 4 && rcols <= 4 && common <= 4)
 		gemm_tiny<lrows, rcols, common>(result, lexpr, rexpr);
-	else if constexpr (total_bytes < FCP_MATH_L1_SIZE)
+	else if constexpr (total_bytes < FCPM_MATH_L1_SIZE)
 		gemm_standard<lrows, rcols, common>(result, lexpr, rexpr, llayout{}, rlayout{});
 }
 

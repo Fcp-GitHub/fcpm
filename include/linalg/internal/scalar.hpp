@@ -1,8 +1,10 @@
 #ifndef FCP_MATH_LINALG_SCALAR_HPP
 #define FCP_MATH_LINALG_SCALAR_HPP
 
-#include "core/common.hpp"
-#include "core/interface_base.hpp"
+#include "core/internal/common.hpp"
+#include "core/internal/interface_base.hpp"
+
+#include <type_traits>
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
@@ -26,6 +28,23 @@ struct Traits<Scalar<T>>
 	static constexpr bool is_row_major{ true };
 	static constexpr bool is_writable{ true };
 };
+
+//template <typename T>
+//	requires std::is_scalar_v<T>
+//struct Traits<T>
+//{
+//	using element_type = T;
+//	using materialized_type = Scalar<T>;
+//	using mtraits = Traits<materialized_type>;
+//
+//	static constexpr int rows{ mtraits::rows };
+//	static constexpr int columns{ mtraits::columns };
+//	static constexpr int size{ mtraits::size };
+//	static constexpr int flags{ mtraits::flags };
+//
+//	static constexpr bool is_row_major{ mtraits::is_row_major };
+//	static constexpr bool is_writable{ mtraits::is_writable };
+//};
 END_FCP_INTERNAL_NAMESPACE
 
 template <typename T>
@@ -33,8 +52,10 @@ struct Scalar : internal::InterfaceBase<Scalar<T>>
 {
 	using is_scalar = void;
 
+	FCPM_ALWAYS_INLINE
 	constexpr void swap_rows_impl(int, int) const {}
 
+	FCPM_ALWAYS_INLINE
 	constexpr void swap_cols_impl(int, int) const {}
 
 	constexpr Scalar() = default;
@@ -47,23 +68,53 @@ struct Scalar : internal::InterfaceBase<Scalar<T>>
 	// Lazy assignment
 	constexpr Scalar operator=(LazyExpressionType auto expr) { m_value = expr.evaluate(0); }
 
-	constexpr T evaluate(int) const { return m_value; }
-	constexpr T evaluate(int, int) const { return m_value; }
+	FCPM_ALWAYS_INLINE constexpr T evaluate(int) const { return m_value; }
+	FCPM_ALWAYS_INLINE constexpr T evaluate(int, int) const { return m_value; }
 
 	const T m_value;
 };
 
 // Helper function template that wraps a scalar value
 template <typename T>
+FCPM_ALWAYS_INLINE FCPM_CONST FCPM_FLATTEN
 constexpr decltype(auto) wrap_scalar(T&& value)
 {
 	using no_cvref_t = std::remove_cvref_t<T>;
 
 	if constexpr (std::is_arithmetic_v<no_cvref_t>)
+#ifdef FCPM_USE_STD_FORWARD
 		return Scalar<no_cvref_t>{std::forward<T>(value)};
+#else
+	return Scalar<no_cvref_t>{static_cast<T&&>(value)};
+#endif
 	else
+#ifdef FCPM_USE_STD_FORWARD
 		return std::forward<T>(value);
+#else
+		return static_cast<T&&>(value);
+#endif
 }
+
+//TODO: this in combination with static_cast() induces the compiler
+//			call the copy constructor of the class T, incurring in 
+//			undesired overhead.
+//			However, wrap_scalar() induces the compiler not to inline the
+//			function call. The solution is to probably use a force-inline
+//			directive
+//template <typename T>
+//struct wrap_scalar_trait
+//{
+//	using no_cvref_t = std::remove_cvref_t<T>;
+//
+//	using type = std::conditional_t<
+//		std::is_arithmetic_v<no_cvref_t>,
+//		Scalar<no_cvref_t>,
+//		T
+//	>;
+//};
+//
+//template <typename T>
+//using wrap_scalar_t = wrap_scalar_trait<T>::type;
 
 END_FCP_MATH_NAMESPACE
 END_FCP_NAMESPACE

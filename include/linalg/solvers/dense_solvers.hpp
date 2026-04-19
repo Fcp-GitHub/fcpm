@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_LINALG_SOLVERS_DENSE_SOLVERS_HPP
 #define FCP_MATH_LINALG_SOLVERS_DENSE_SOLVERS_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 #include "linalg/internal/kernels/linsys.hpp"
 
 START_FCP_NAMESPACE

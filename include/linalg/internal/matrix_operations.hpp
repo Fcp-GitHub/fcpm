@@ -1,8 +1,7 @@
 #ifndef FCP_MATH_LINALG_MATRIX_OPS_HPP
 #define FCP_MATH_LINALG_MATRIX_OPS_HPP
 
-#include "core/base.hpp"
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 
 #include "linalg/internal/kernels/gemm.hpp"
 #include "linalg/internal/kernels/mat_inverse.hpp"
@@ -156,6 +155,7 @@ struct TransposeExpr : UnaryExpressionBase<Expr, T, TransposeExpr<Expr, T>>
 		return m_expr.evaluate(i%cols, i/cols);
 	}
 
+	FCPM_ALWAYS_INLINE
 	constexpr T evaluate(int row, int col) const
 	{
 		return m_expr.evaluate(col, row);

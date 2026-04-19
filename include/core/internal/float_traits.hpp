@@ -1,10 +1,11 @@
 #ifndef FCP_MATH_CORE_FLOAT_TRAITS_HPP
 #define FCP_MATH_CORE_FLOAT_TRAITS_HPP
 
-#include "core/base.hpp"
+#include "core/internal/base.hpp"
 
 #include <stdfloat>
 #include <cstdint>
+#include <concepts>
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE

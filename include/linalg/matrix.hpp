@@ -5,13 +5,12 @@
 // Include header files
 //----------------------------------------------------------------------------------
 
-#include "core/common.hpp"
-#include "core/hardware.hpp"
-#include "core/operators.hpp"
+#include "core/internal/common.hpp"		
+#include "core/operators.hpp"	// IWYU pragma: export
 
-#include "linalg/internal/matrix_class.hpp"
-#include "linalg/internal/matrix_operations.hpp"
-#include "linalg/internal/vector_operations.hpp"
+#include "linalg/internal/matrix_class.hpp"				// IWYU pragma: export	
+#include "linalg/internal/matrix_operations.hpp"	// IWYU pragma: export
+#include "linalg/internal/vector_operations.hpp"	// IWYU pragma: export
 
 // Make operators public
 using namespace fcp::math::operators;

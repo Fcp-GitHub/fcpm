@@ -1,10 +1,8 @@
 #ifndef FCP_MATH_LINALG_BLOCKVIEW_HPP
 #define FCP_MATH_LINALG_BLOCKVIEW_HPP
 
-#include "core/base.hpp"
-#include "core/common.hpp"
-#include "core/forward.hpp"
-#include "core/interface_base.hpp"
+#include "core/internal/common.hpp"
+#include "core/internal/interface_base.hpp"
 
 #include <type_traits>
 #include <utility>

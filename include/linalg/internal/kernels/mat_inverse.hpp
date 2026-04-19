@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_LINALG_INTERNAL_KERNELS_MATINVERSE_HPP
 #define FCP_MATH_LINALG_INTERNAL_KERNELS_MATINVERSE_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 
 #include "linalg/solvers/lu_solver.hpp"
 

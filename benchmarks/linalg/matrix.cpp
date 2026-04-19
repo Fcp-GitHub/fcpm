@@ -1,19 +1,32 @@
 #include "benchmark/benchmark.h"
+#include "benchmark/utils.h"
 #include "linalg/matrix.hpp"
-#include "linalg/solvers/lu_solver.hpp"
 
 using type = double;
-using mat_t = fcp::math::Matrix<type, 20, 20>;
-using small_mat_t = fcp::math::Matrix<type, 2, 2>;
+inline constexpr int n{ 50 };
+using mat_t = fcp::math::Matrix<type, n, n>;
+
+mat_t A(static_cast<type>(3));
+mat_t B(static_cast<type>(5));
+mat_t C(static_cast<type>(2));
+mat_t D(static_cast<type>(4));	
+
+// Benchmark Matrix constructor
+static void constructor(benchmark::State& state)
+{
+	for (auto _ : state)
+	{
+		benchmark::DoNotOptimize(mat_t(static_cast<type>(0)));
+	}
+}
+BENCHMARK(constructor);
 
 // Benchmark lazy-evaluated addition
 static void lazy_addition_chain(benchmark::State& state)
 {
-	mat_t A(3.), B(5.), C(2.), D(4.);	
-
 	for (auto _ : state)
 	{
-		auto result{ (A + B + C + D).eval() };
+		auto result{ (A - B + C - D).eval() };
 		benchmark::DoNotOptimize( result.data() );
 	}
 }
@@ -22,13 +35,11 @@ BENCHMARK(lazy_addition_chain);
 // Benchmark eagerly-evaluated addition
 static void eager_addition_chain(benchmark::State& state)
 {
-	mat_t A(3.), B(5.), C(2.), D(4.);	
-
 	for (auto _ : state)
 	{
-		auto temp0{ (A + B).eval() };
+		auto temp0{ (A - B).eval() };
 		auto temp1{ (temp0 + C).eval() };
-		auto result{ (temp1 + D).eval() };
+		auto result{ (temp1 - D).eval() };
 		benchmark::DoNotOptimize( result.data() );
 	}
 }
@@ -37,7 +48,6 @@ BENCHMARK(eager_addition_chain);
 // Benchmark lazy-evalauted scaling
 static void lazy_scale(benchmark::State& state)
 {
-	mat_t A(3.), B(5.);
 	type s{ static_cast<type>(4) };
 
 	for (auto  _ : state)
@@ -51,7 +61,6 @@ BENCHMARK(lazy_scale);
 // Benchmark eagerly-evalauted scaling
 static void eager_scale(benchmark::State& state)
 {
-	mat_t A(3.), B(5.);
 	type s{ static_cast<type>(4) };
 
 	for (auto  _ : state)
@@ -63,53 +72,36 @@ static void eager_scale(benchmark::State& state)
 }
 BENCHMARK(eager_scale);
 
-// Benchmark GEMM in two different sequence of operations
-static void gemm_first_scale(benchmark::State& state)
+//Benchmark lazy access after complex operation
+static void lazy_access(benchmark::State& state)
 {
-	mat_t A(3.), B(5.);
-	type s{ static_cast<type>(4) };
+	type s{ static_cast<type>(4) }, t{ static_cast<type>(7) };
 
 	for (auto _ : state)
 	{
-		benchmark::DoNotOptimize( ((s * A) * B).eval().data() );
+		auto result{ (A + B) * s + t * (C + D) };
+		benchmark::DoNotOptimize(result[0, n/2]);
+		benchmark::DoNotOptimize(result[n/3, 0]);
 	}
 }
-BENCHMARK(gemm_first_scale);
+BENCHMARK(lazy_access);
 
-static void gemm_first_multiply(benchmark::State& state)
+//Benchmark "eager" access after complex operation
+static void eager_access(benchmark::State& state)
 {
-	mat_t A(3.), B(5.);
-	type s{ static_cast<type>(4) };
+	type s{ static_cast<type>(4) }, t{ static_cast<type>(7) };
 
 	for (auto _ : state)
 	{
-		benchmark::DoNotOptimize( ((A * B) * s).eval().data() );
+		auto temp0{ (A + B).eval() };
+		auto temp1{ (temp0 * s).eval() };
+		auto temp2{ (C + D).eval() };
+		auto temp3{ (t * temp2).eval() };
+		auto result{ (temp1 + temp2).eval() };
+		benchmark::DoNotOptimize(result[0, n/2]);
+		benchmark::DoNotOptimize(result[n/3, 0]);
 	}
 }
-BENCHMARK(gemm_first_scale);
-
-static void optimized_small_inverse(benchmark::State& state)
-{
-	small_mat_t A(3.);
-
-	for (auto _ : state)
-	{
-		benchmark::DoNotOptimize(A.inverse().eval().data());
-	}
-}
-BENCHMARK(optimized_small_inverse);
-
-static void bruteforce_small_inverse(benchmark::State& state)
-{
-	small_mat_t A(3.);
-
-	for (auto _ : state)
-	{
-		fcp::math::solvers::LUSolver<small_mat_t> solver(A);	
-		benchmark::DoNotOptimize(solver.get_inverse().eval().data());
-	}
-}
-BENCHMARK(bruteforce_small_inverse);
-
+BENCHMARK(eager_access);
 
 BENCHMARK_MAIN();

@@ -1,8 +1,8 @@
 #ifndef FCP_MATH_LINALG_MATRIX_CLASS_HPP
 #define FCP_MATH_LINALG_MATRIX_CLASS_HPP
 
-#include "core/common.hpp"
-#include "core/interface_base.hpp"
+#include "core/internal/common.hpp"
+#include "core/internal/interface_base.hpp"
 
 #include "linalg/internal/storage_base.hpp"
 
@@ -105,21 +105,25 @@ class Matrix :
 			}	
 		}
 
+		FCPM_ALWAYS_INLINE
 		constexpr const T& evaluate(int i) const
 		{
 			return m_data[i];	
 		}
 
+		FCPM_ALWAYS_INLINE
 		constexpr T& evaluate(int i)
 		{
 			return m_data[i];	
 		}
 
+		FCPM_ALWAYS_INLINE
 		constexpr const T& evaluate(int row, int col) const
 		{
 			return m_data[compute_index(row, col)];	
 		}
 
+		FCPM_ALWAYS_INLINE
 		constexpr T& evaluate(int row, int col)
 		{
 			return m_data[compute_index(row, col)];	
@@ -217,6 +221,7 @@ class Matrix :
 			}
 		}
 
+		FCPM_ALWAYS_INLINE FCPM_CONST
 		constexpr int compute_index(int row, int col) const
 		{
 			if constexpr (std::is_same_v<Layout, RowMajorTag>)

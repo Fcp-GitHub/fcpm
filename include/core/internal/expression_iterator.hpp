@@ -1,7 +1,7 @@
 #ifndef FCPUT_LAZYEVAL_EXPRESSION_ITERATOR_HPP
 #define FCPUT_LAZYEVAL_EXPRESSION_ITERATOR_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 
 #include <cstddef>
 #include <iterator>
@@ -83,8 +83,8 @@ class ExpressionIterator
 		// Operators
 
 		// Dereferencing and subscripting triggers lazy evaluation
-		constexpr reference operator*() const { return m_expr[m_index]; }
-		constexpr reference operator[](difference_type n) const { return m_expr[m_index + n*Stride]; }
+		FCPM_ALWAYS_INLINE constexpr reference operator*() const { return m_expr[m_index]; }
+		FCPM_ALWAYS_INLINE constexpr reference operator[](difference_type n) const { return m_expr[m_index + n*Stride]; }
 
 		constexpr ExpressionIterator& operator++() { m_index += Stride; return *this; }
 		constexpr ExpressionIterator& operator++(int) { m_index += Stride; return *this; }
@@ -122,12 +122,14 @@ class ExpressionIterator
 			return temp -= n;
 		}
 
+		FCPM_ALWAYS_INLINE FCPM_CONST
 		constexpr difference_type operator-(ExpressionIterator& other) const
 		{
 			return static_cast<difference_type>(m_index) - static_cast<difference_type>(other.m_index);
 		}
 
 		// TODO: this can't be right
+		FCPM_ALWAYS_INLINE FCPM_CONST
 		constexpr bool operator==(const ExpressionIterator& other) const
 		{
 			return /*(m_expr == other.m_expr) and*/ (m_index == other.m_index);

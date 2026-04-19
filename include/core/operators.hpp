@@ -1,15 +1,15 @@
 #ifndef FCP_MATH_H_LAZY_OPERATORS_HPP
 #define FCP_MATH_H_LAZY_OPERATORS_HPP
 
+#include "core/internal/common.hpp"
+#include "core/internal/expression_templates.hpp"
+
+#include "linalg/internal/scalar.hpp"
+
+//#include "core/operators_soo.hpp"	// IWYU pragma: keep
+
 #include <iostream>
 #include <type_traits>
-
-#include "core/base.hpp"
-#include "core/common.hpp"
-#include "core/expression_templates.hpp"
-
-#include "forward.hpp"
-#include "linalg/internal/scalar.hpp"
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
@@ -39,7 +39,8 @@ START_FCP_OPERATORS_NAMESPACE
 //----------------------------------------------------
 
 template <typename L, typename R>																				
-	requires LazyType<L> || LazyType<R>																		
+	requires (LazyType<L> || LazyType<R>) //&&
+					 //LargeLazyType<internal::get_max_traits_t<L, R>>
 constexpr auto operator+(L&& left, R&& right)													
 {																																				
 	//TODO: I'm probably typecasting too much between these operators			
@@ -69,10 +70,31 @@ constexpr auto operator+(L&& left, R&& right)
 	//NOTE: this is the reason why "heavy" objects need to be 						
 	//			defined as static if one wishes to use them in 		 						
 	//			compile-time evaluation																				
-	return internal::SumExpr<lwt, rwt, T>(																
-			wrap_scalar(left),																								
-		 	wrap_scalar(right)																								
-	);																																		
+
+	//TODO: SOO
+	using lraw_t = std::remove_cvref_t<lwt>;
+	using rraw_t = std::remove_cvref_t<rwt>;
+	using max_traits = internal::get_max_traits_t<lraw_t, rraw_t>;
+
+	const auto left_w{ wrap_scalar(left) };
+	const auto right_w{ wrap_scalar(right) };
+
+	if constexpr (max_traits::size <= 16)
+	{
+		typename max_traits::materialized_type result;	
+		for (int i{0}; i < max_traits::rows; i++)
+			for (int j{0}; j < max_traits::columns; j++)
+				result[i, j] = left_w[i, j] + right_w[i, j];
+
+		return result;
+	} else {
+		return internal::SumExpr<lwt, rwt, T>(																
+				left_w,
+				//static_cast<wrap_scalar_t<std::remove_cvref_t<L>>>(left),																								
+				right_w
+			 	//static_cast<wrap_scalar_t<std::remove_cvref_t<R>>>(right)																								
+		);																																		
+	}
 }	
 
 // Add-Assign, only for materialized types
@@ -94,10 +116,32 @@ constexpr auto operator-(L&& left, R&& right)
 	// Deduce underlying type
 	using T = decltype(lwt(left).evaluate(0) - rwt(right).evaluate(0));
 
-	return internal::SubExpr<lwt, rwt, T>(
-			wrap_scalar(left),
-			wrap_scalar(right)
-	);
+	//TODO: SOO
+	using ltraits = internal::Traits<std::remove_cvref_t<lwt>>;
+	using rtraits = internal::Traits<std::remove_cvref_t<rwt>>;
+	using max_traits = std::conditional_t<
+		(ltraits::size > rtraits::size),
+		ltraits,
+		rtraits
+	>;
+
+	const auto left_w{ wrap_scalar(left) };
+	const auto right_w{ wrap_scalar(right) };
+
+	if constexpr (max_traits::size <= 16)
+	{
+		typename max_traits::materialized_type result;	
+		for (int i{0}; i < max_traits::rows; i++)
+			for (int j{0}; j < max_traits::columns; j++)
+				result[i, j] = left_w[i, j] - right_w[i, j];
+
+		return result;
+	} else {
+		return internal::SubExpr<lwt, rwt, T>(
+				left_w,
+				right_w
+		);
+	}
 }
 
 // Subtract-Assign, only for materialized types
@@ -215,10 +259,29 @@ constexpr auto operator/(L&& left, R&& right)
 	// Deduce underlying type
 	using T = decltype(lwt(left).evaluate(0) * rwt(right).evaluate(0));
 
-	return internal::DivExpr<lwt, rwt, T>(
-			wrap_scalar(left),
-			wrap_scalar(right)
-	);
+	//TODO: SOO
+	using ltraits = internal::Traits<std::remove_cvref_t<lwt>>;
+	using rtraits = internal::Traits<std::remove_cvref_t<rwt>>;
+	using max_traits = std::conditional_t<
+		(ltraits::size > rtraits::size),
+		ltraits,
+		rtraits
+	>;
+
+	const auto left_w { wrap_scalar(left) };
+	const auto right_w{ wrap_scalar(right) };
+
+	if constexpr (max_traits::size <= 16)
+	{
+		typename max_traits::materialized_type result;	
+		for (int i{0}; i < max_traits::rows; i++)
+			for (int j{0}; j < max_traits::columns; j++)
+				result[i, j] = left_w[i, j] / right_w[i, j];
+
+		return result;
+	} else {
+		return internal::DivExpr<lwt, rwt, T>(left_w, right_w);
+	}
 }
 
 // Divide-Assign, only for materialized types

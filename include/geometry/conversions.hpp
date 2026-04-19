@@ -1,8 +1,7 @@
 #ifndef FCP_MATH_GEOMETRY_REPR_CASTS_HPP
 #define FCP_MATH_GEOMETRY_REPR_CASTS_HPP
 
-#include "core/common.hpp"
-#include "core/forward.hpp"
+#include "core/internal/common.hpp"
 #include "core/math_fun.hpp"
 
 #include "linalg/matrix.hpp"

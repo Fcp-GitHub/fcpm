@@ -1,10 +1,8 @@
 #ifndef FCP_MATH_LINALG_INTERFACE_BASE_HPP
 #define FCP_MATH_LINALG_INTERFACE_BASE_HPP
 
-#include "core/base.hpp"
-#include "core/common.hpp"
-#include "core/forward.hpp"
-#include "core/expression_iterator.hpp"
+#include "core/internal/common.hpp"
+#include "core/internal/expression_iterator.hpp"
 #include "core/math_fun.hpp"
 
 #include <concepts>
@@ -402,11 +400,13 @@ struct InterfaceBase : PluginIfAvailable<std::remove_cvref_t<Derived>>
 	}
 
 	private:
+		FCPM_ALWAYS_INLINE FCPM_CONST
 		constexpr Derived& derived() noexcept
 		{
 			return static_cast<Derived&>(*this);
 		}
 
+		FCPM_ALWAYS_INLINE FCPM_CONST
 		constexpr const Derived& derived() const noexcept
 		{
 			return static_cast<const Derived&>(*this);

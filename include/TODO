@@ -1,10 +1,13 @@
 -- 0.5
+Look at `look_at()` function implementation. 
+- Small object optimization (look at memberwise operator+())
+- CMake files
+- Compiler directives (Force-inline, etc.) and library API macros
 
 # 0.6 - 0.7
 - SIMD
 - Mask operations
 - Pretty-Print options (matrix in particular)
-- Force-inline, library API macros, etc.
 - Better expression-trees handling
 - Better trig functions (MINIMAX)
 - Assign matrix row/column to vector and viceversa

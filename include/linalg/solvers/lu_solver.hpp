@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_LINALG_SOLVERS_LU_SOLVER_HPP
 #define FCP_MATH_LINALG_SOLVERS_LU_SOLVER_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 #include "core/math_fun.hpp"
 
 #include "linalg/internal/storage_base.hpp"

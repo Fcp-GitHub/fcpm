@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_GEOMETRY_QUATERNION_CLASS_HPP
 #define FCP_MATH_GEOMETRY_QUATERNION_CLASS_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 
 #include "linalg/internal/matrix_class.hpp"
 

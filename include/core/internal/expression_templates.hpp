@@ -1,8 +1,7 @@
 #ifndef FCPUT_LAZYEVAL_EXPRESSION_TEMPLATES
 #define FCPUT_LAZYEVAL_EXPRESSION_TEMPLATES
 
-#include "core/common.hpp"
-#include "core/engine.hpp"
+#include "core/internal/engine.hpp"
 
 #include <functional>
 

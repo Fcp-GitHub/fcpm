@@ -1,9 +1,8 @@
 #ifndef FCP_MATH_GEOMETRY_INTERNAL_QUATERNION_BASE_HPP
 #define FCP_MATH_GEOMETRY_INTERNAL_QUATERNION_BASE_HPP
 
-#include "core/common.hpp"
-#include "core/interface_base.hpp"
-#include "core/expression_iterator.hpp"
+#include "core/internal/common.hpp"
+#include "core/internal/interface_base.hpp"
 #include "core/math_fun.hpp"
 
 #include "linalg/matrix.hpp"

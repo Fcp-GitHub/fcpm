@@ -1,8 +1,7 @@
 #ifndef FCP_MATH_GEOMETRY_INTERNAL_TRANSFORMS_SPACE_CONVERSIONS_HPP
 #define FCP_MATH_GEOMETRY_INTERNAL_TRANSFORMS_SPACE_CONVERSIONS_HPP
 
-#include "core/common.hpp"
-#include "core/hardware.hpp"
+#include "core/internal/common.hpp"
 
 #include "linalg/matrix.hpp"
 
@@ -680,22 +679,21 @@ constexpr auto look_at(const EyeVector& eye, const AtVector& at, const UpVector&
 	enum { X, Y, Z };
 
 	constexpr auto zero{ static_cast<T>(0) };
-	constexpr auto one{ static_cast<T>(1) };
 
-	const auto fwd{ normalize(eye - at) };
+	const auto fwd{ normalize((eye - at)/*.eval()*/) };
 	auto right{ normalize(cross(world_up, fwd)).eval() };
 
-	// If cross product is zero, use fallback vector
-	bool parallel{ fcp::math::cmp(fcp::math::l2norm_sq(right), zero) };
+	//// If cross product is zero, use fallback vector
+	//bool parallel{ fcp::math::cmp(fcp::math::l2norm_sq(right), zero) };
 
-	// Choose a fallback vector for right based on fwd's direction
-	if (parallel) 
-	{
-		if (fcp::math::abs(fwd[Y]) > static_cast<T>(0.9999L))
-			right = normalize(cross(mater_t{zero, zero, one}, fwd)).eval();
-		else
-			right = normalize(cross(mater_t{one, zero, zero}, fwd)).eval();
-	}
+	//// Choose a fallback vector for right based on fwd's direction
+	//if (parallel) 
+	//{
+	//	if (fcp::math::abs(fwd[Y]) > static_cast<T>(0.9999L))
+	//		right = normalize(cross(mater_t{zero, zero, one}, fwd)).eval();
+	//	else
+	//		right = normalize(cross(mater_t{one, zero, zero}, fwd)).eval();
+	//}
 
 	const auto nup{ cross(fwd, right) };
 
@@ -733,17 +731,38 @@ constexpr auto look_at(const EyeVector& eye, const AtVector& at, const UpVector&
 				right[X], right[Y], right[Z], dre,
 				nup[X],   nup[Y],   nup[Z],   due,
 				fwd[X],   fwd[Y],   fwd[Z],   dfe,
-				zero,     zero,     zero,     static_cast<T>(1)	
+				zero, zero, zero, static_cast<T>(1)	
 			};	
 		} else {										// Right-Handed system
 			const auto dfe{ dot(fwd, eye) };
 
-			return Matrix{
-				right[X],  right[Y], right[Z], dre,
-				nup[X],    nup[Y],   nup[Z],   due,
-				-fwd[X],  -fwd[Y],  -fwd[Z],   dfe,
-				zero,     zero,     zero,     static_cast<T>(1)	
-			};	
+			Matrix result;
+
+			result[0, 0] = right[X];
+			result[0, 1] = right[Y];
+			result[0, 2] = right[Z];
+			result[0, 3] = dre;
+			result[1, 0] = nup[X];
+			result[1, 1] = nup[Y];
+			result[1, 2] = nup[Z];
+			result[1, 3] = due;
+			result[2, 0] = -fwd[X];
+			result[2, 1] = -fwd[Y];
+			result[2, 2] = -fwd[Z];
+			result[2, 3] = dfe;
+			result[3, 0] = static_cast<T>(0);
+			result[3, 1] = static_cast<T>(0);
+			result[3, 2] = static_cast<T>(0);
+			result[3, 3] = static_cast<T>(1);
+
+			return result;
+
+			//return Matrix{
+			//	right[X],  right[Y], right[Z], dre,
+			//	nup[X],    nup[Y],   nup[Z],   due,
+			//	-fwd[X],  -fwd[Y],  -fwd[Z],   dfe,
+			//	zero, zero, zero, static_cast<T>(1)	
+			//};	
 		}
 	}
 }

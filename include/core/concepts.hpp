@@ -1,82 +1,53 @@
-#ifndef FCP_MATH_CORE_COMMON_HPP
-#define FCP_MATH_CORE_COMMON_HPP
+#ifndef FCP_MATH_CORE_CONCEPTS_HPP
+#define FCP_MATH_CORE_CONCEPTS_HPP
 
-#include "core/base.hpp"
-#include "core/forward.hpp"
+#include "core/internal/base.hpp"
+#include "core/internal/forward.hpp"
+#include "core/internal/hardware.hpp"
 
 #include <type_traits>
 #include <concepts>
 
 START_FCP_NAMESPACE
 START_FCP_MATH_NAMESPACE
-START_FCP_INTERNAL_NAMESPACE
 
-template <typename T>
-inline constexpr bool is_writable_v{
-			Traits<std::remove_cvref_t<T>>::is_writable &&
-			/*std::is_lvalue_reference_v<T> &&*/
-			(!std::is_const_v<std::remove_reference_t<T>>)	
-};
+//----------------------------------------------------------------------------------
+// Generic "lazy object" concepts
+//----------------------------------------------------------------------------------
 
-template <typename... Vecs>
-concept AllSameLayout = 
-	(Traits<std::remove_cvref_t<Vecs>>::is_row_major && ...) ||
-	(!Traits<std::remove_cvref_t<Vecs>>::is_row_major && ...);
-
-END_FCP_INTERNAL_NAMESPACE
-
-inline constexpr int RowMajor{ 0x01 };
-inline constexpr int ColumnMajor{ 0x02 };
-inline constexpr int StaticStorage{ 0x04 };
-inline constexpr int UseSIMD{ 0x08 };
-inline constexpr int JollyFlag{ 0b1111 };	// For scalar types
-
-inline constexpr int MatrixDefaultFlags{ RowMajor | StaticStorage };
-
-template <typename T, int N>
-using RowVector = Matrix<T, 1, N, RowMajor | StaticStorage>;
-
-template <typename T, int N>
-using ColumnVector = Matrix<T, N, 1, ColumnMajor | StaticStorage>;
-
-START_FCP_INTERNAL_NAMESPACE
-
-template <int Flags>
-struct MatrixFlagsInspector
+// Accept only operands that support lazy evaluation
+template <typename E>
+concept LazyType = requires
 {
-	static constexpr bool check_if_set(int flag)
-	{
-		return (Flags & flag) != 0;
-	}
-	
-	static constexpr bool use_row_major{ check_if_set(RowMajor) };
-	static constexpr bool use_static_storage{ check_if_set(StaticStorage) };
-	static constexpr bool use_simd{ check_if_set(UseSIMD) };
-	
+	typename std::remove_cvref_t<E>::is_lazy;
 };
 
-template <int LeftFlags, int RightFlags>
-struct MatrixFlagsMerger
+template <typename E>
+concept LargeLazyType = requires
 {
-	static constexpr int layout{ (LeftFlags & RowMajor) ? RowMajor : ColumnMajor };
-	static constexpr int storage{ StaticStorage };
-	static constexpr int simd{ ((LeftFlags & UseSIMD) && (RightFlags & UseSIMD)) ? UseSIMD : 0 };
-
-	static constexpr int value{ layout | storage | simd };
-
-	static constexpr bool use_row_major{ (layout == RowMajor) ? true : false };
+	requires internal::Traits<std::remove_cvref_t<E>>::size > FCPM_ENGINE_SOO_THRESHOLD;
 };
 
-template <typename T>
-struct is_permutation_expr : std::false_type{};
+template <typename E>
+concept SmallLazyType = !LargeLazyType<E>;
 
-template <typename SubExpr>
-struct is_permutation_expr<PermutationExpr<SubExpr>> : std::true_type{};
+// Expression concept
+template <typename E>
+concept LazyExpressionType = LazyType<E> && requires(E expr)
+{
+	typename std::remove_cvref_t<E>::is_expression;
+};
 
-template <typename Expr>
-constexpr bool is_permutation_expr_v{ is_permutation_expr<std::remove_cvref_t<Expr>>::value };
+// Generic materialized type
+template <typename E>
+concept LazyMaterializedType = LazyType<E> && requires(E expr)
+{
+	!requires{ std::remove_cvref_t<E>::is_expression; };
+};
 
-END_FCP_INTERNAL_NAMESPACE
+//----------------------------------------------------------------------------------
+// Matrix concepts
+//----------------------------------------------------------------------------------
 
 // Matrix concept
 template <typename E>
@@ -138,6 +109,10 @@ concept Lazy3x3MatrixLike = LazyRxCMatrixLike<3, 3, E>;
 template <typename E>
 concept Lazy4x4MatrixLike = LazyRxCMatrixLike<4, 4, E>;
 
+//----------------------------------------------------------------------------------
+// Vector concepts
+//----------------------------------------------------------------------------------
+
 // Vector concept
 template <typename E>
 concept LazyVectorType = LazyType<E> && requires(E expr)
@@ -191,6 +166,10 @@ concept Lazy3DVectorLike = LazyNDVectorLike<3, E>;
 template <typename E>
 concept Lazy4DVectorLike = LazyNDVectorLike<4, E>;
 
+//----------------------------------------------------------------------------------
+// Scalar concepts
+//----------------------------------------------------------------------------------
+
 template <typename T>
 concept ScalarType = requires(T a, T b) {
     { a + b } -> std::convertible_to<std::remove_cvref_t<T>>;
@@ -217,6 +196,10 @@ concept LazyScalarLike = (
 		}
 	) ||
 	ScalarType<E>;
+
+//----------------------------------------------------------------------------------
+// Quaternion concepts
+//----------------------------------------------------------------------------------
 
 // Quaternion concept
 template <typename E>
@@ -250,14 +233,8 @@ concept LazyUnitQuaternionLike = (
 		}
 	)	|| LazyUnitQuaternionType<E>;
 
-// Generic materialized type
-template <typename E>
-concept LazyMaterializedType = LazyType<E> && requires(E expr)
-{
-	!requires{ std::remove_cvref_t<E>::is_expression; };
-};
 
 END_FCP_MATH_NAMESPACE
 END_FCP_NAMESPACE
 
-#endif	//FCP_MATH_CORE_COMMON_HPP
+#endif	//FCP_MATH_CORE_CONCEPTS_HPP

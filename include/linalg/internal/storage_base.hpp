@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_LINALG_STORAGE_HPP
 #define FCP_MATH_LINALG_STORAGE_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 
 #include <array>
 #include <type_traits>

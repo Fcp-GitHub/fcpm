@@ -1,10 +1,8 @@
 #ifndef FCP_MATH_GEOMETRY_INTERNAL_TRANSFORMS_ROTATIONS_HPP
 #define FCP_MATH_GEOMETRY_INTERNAL_TRANSFORMS_ROTATIONS_HPP
 
-#include "core/common.hpp"
-#include "core/forward.hpp"
+#include "core/internal/common.hpp"
 
-#include "core/hardware.hpp"
 #include "linalg/matrix.hpp"
 
 #include "geometry/internal/quaternion_class.hpp"

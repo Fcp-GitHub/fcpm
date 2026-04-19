@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_LINALG_INTERNAL_KERNELS_LINSYS_HPP
 #define FCP_MATH_LINALG_INTERNAL_KERNELS_LINSYS_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 #include "core/math_fun.hpp"
 
 #include "linalg/internal/storage_base.hpp"

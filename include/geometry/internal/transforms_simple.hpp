@@ -1,7 +1,7 @@
 #ifndef FCP_MATH_GEOMETRY_INTERNAL_TRANSFORMS_SIMPLE_HPP
 #define FCP_MATH_GEOMETRY_INTERNAL_TRANSFORMS_SIMPLE_HPP
 
-#include "core/common.hpp"
+#include "core/internal/common.hpp"
 
 #include "linalg/matrix.hpp"
 
